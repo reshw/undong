@@ -27,6 +27,8 @@ export const Home = () => {
   const interimTranscript = 'interimTranscript' in currentMode ? currentMode.interimTranscript : '';
 
   const handleMicClick = async () => {
+    console.log('[Home] handleMicClick - Current state:', state, 'Mode:', mode);
+
     if (state === 'idle') {
       currentMode.resetTranscript();
       setEditableText('');
@@ -34,18 +36,22 @@ export const Home = () => {
       setWorkouts([]);
 
       if (mode === 'web-speech') {
+        console.log('[Home] Starting Web Speech API');
         webSpeech.startListening();
       } else {
+        console.log('[Home] Starting Whisper recording');
         await whisper.startRecording();
       }
       setState('listening');
     } else if (state === 'listening') {
       setState('transcribing');
+      console.log('[Home] Stopping recording, mode:', mode);
 
       if (mode === 'web-speech') {
         webSpeech.stopListening();
         setTimeout(() => {
           const finalText = transcript.trim();
+          console.log('[Home] Web Speech final text:', finalText);
           setEditableText(finalText);
           handleParse(finalText, false);
         }, 500);
@@ -53,6 +59,7 @@ export const Home = () => {
         await whisper.stopRecording();
         setTimeout(() => {
           const finalText = whisper.transcript.trim();
+          console.log('[Home] Whisper final text:', finalText);
           setEditableText(finalText);
           handleParse(finalText, true);
         }, 1000);
@@ -61,18 +68,23 @@ export const Home = () => {
   };
 
   const handleParse = async (text: string, useAI: boolean) => {
+    console.log('[Home] handleParse - useAI:', useAI, 'text:', text);
     setState('parsing');
 
     try {
       if (useAI) {
+        console.log('[Home] Using AI mode (GPT parsing)');
         const parsed = await parseWithGPT(text);
+        console.log('[Home] GPT parsing result:', parsed);
         setNormalizedText(text);
         setWorkouts(parsed);
       } else {
+        console.log('[Home] Using rule-based parsing');
         setTimeout(() => {
           const normalized = normalizeText(text);
-          setNormalizedText(normalized);
+          console.log('[Home] Normalized text:', normalized);
           const parsed = parseWorkoutText(normalized);
+          console.log('[Home] Rule-based parsing result:', parsed);
           setWorkouts(parsed);
           setState('review');
         }, 300);
@@ -80,8 +92,8 @@ export const Home = () => {
       }
       setState('review');
     } catch (err) {
-      console.error('Parsing error:', err);
-      alert('파싱에 실패했습니다. 다시 시도해주세요.');
+      console.error('[Home] Parsing error:', err);
+      alert(`파싱에 실패했습니다: ${err instanceof Error ? err.message : '알 수 없는 오류'}`);
       setState('idle');
     }
   };

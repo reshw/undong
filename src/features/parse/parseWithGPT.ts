@@ -29,15 +29,23 @@ const SYSTEM_PROMPT = `당신은 운동 기록을 구조화하는 전문가입�
 export const parseWithGPT = async (text: string): Promise<Workout[]> => {
   const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
 
+  console.log('[GPT] API Key exists:', !!apiKey);
+  console.log('[GPT] API Key prefix:', apiKey?.substring(0, 10));
+  console.log('[GPT] Input text:', text);
+
   if (!apiKey) {
+    console.error('[GPT] No API key found');
     throw new Error('OpenAI API 키가 설정되지 않았습니다.');
   }
 
   if (!text.trim()) {
+    console.log('[GPT] Empty text, returning empty array');
     return [];
   }
 
   try {
+    console.log('[GPT] Sending request to OpenAI...');
+
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -61,13 +69,19 @@ export const parseWithGPT = async (text: string): Promise<Workout[]> => {
       }),
     });
 
+    console.log('[GPT] Response status:', response.status);
+
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`GPT API error: ${errorData.error?.message || response.status}`);
+      const errorData = await response.json().catch(() => ({}));
+      console.error('[GPT] API Error:', errorData);
+      throw new Error(`GPT API error: ${errorData.error?.message || response.status} - ${JSON.stringify(errorData)}`);
     }
 
     const data = await response.json();
+    console.log('[GPT] Response data:', data);
+
     const content = data.choices[0]?.message?.content;
+    console.log('[GPT] Content:', content);
 
     if (!content) {
       throw new Error('GPT 응답이 비어있습니다.');
@@ -75,13 +89,15 @@ export const parseWithGPT = async (text: string): Promise<Workout[]> => {
 
     const jsonMatch = content.match(/\[[\s\S]*\]/);
     if (!jsonMatch) {
+      console.error('[GPT] No JSON found in content:', content);
       throw new Error('유효한 JSON을 찾을 수 없습니다.');
     }
 
     const workouts = JSON.parse(jsonMatch[0]) as Workout[];
+    console.log('[GPT] Parsed workouts:', workouts);
     return workouts;
   } catch (err) {
-    console.error('GPT parsing error:', err);
+    console.error('[GPT] Parsing error:', err);
     throw err;
   }
 };
