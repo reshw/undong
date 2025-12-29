@@ -29,12 +29,14 @@ const determineWorkoutType = (name: string): WorkoutType => {
 interface ParsedNumbers {
   sets: number | null;
   reps: number | null;
+  weight_kg: number | null;
   duration_min: number | null;
 }
 
 const extractNumbers = (segment: string): ParsedNumbers => {
   let sets: number | null = null;
   let reps: number | null = null;
+  let weight_kg: number | null = null;
   let duration_min: number | null = null;
 
   const setsMatch = segment.match(/(\d+)\s*세트/);
@@ -45,6 +47,11 @@ const extractNumbers = (segment: string): ParsedNumbers => {
   const repsMatch = segment.match(/(\d+)\s*(회|개)/);
   if (repsMatch) {
     reps = parseInt(repsMatch[1], 10);
+  }
+
+  const weightMatch = segment.match(/(\d+(?:\.\d+)?)\s*(kg|킬로|키로)/i);
+  if (weightMatch) {
+    weight_kg = parseFloat(weightMatch[1]);
   }
 
   const durationMatch = segment.match(/(\d+)\s*분(간)?/);
@@ -58,7 +65,7 @@ const extractNumbers = (segment: string): ParsedNumbers => {
     sets = parseInt(multiplyMatch[2], 10);
   }
 
-  return { sets, reps, duration_min };
+  return { sets, reps, weight_kg, duration_min };
 };
 
 const findExerciseName = (segment: string): string | null => {
@@ -99,7 +106,7 @@ export const parseWorkoutText = (normalizedText: string): Workout[] => {
     const name = findExerciseName(trimmed);
     if (!name) continue;
 
-    const { sets, reps, duration_min } = extractNumbers(trimmed);
+    const { sets, reps, weight_kg, duration_min } = extractNumbers(trimmed);
 
     const type = determineWorkoutType(name);
 
@@ -110,6 +117,7 @@ export const parseWorkoutText = (normalizedText: string): Workout[] => {
       name,
       sets,
       reps,
+      weight_kg,
       duration_min,
       type,
       note,

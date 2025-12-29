@@ -1,15 +1,21 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { Home } from './pages/Home';
 import { History } from './pages/History';
+import { TodoList } from './pages/TodoList';
+import { Recommend } from './pages/Recommend';
+import { BottomNav } from './components/BottomNav';
 import './App.css';
 
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/history" element={<History />} />
-      </Routes>
+      <div className="app-container">
+        <Routes>
+          <Route path="/" element={<History />} />
+          <Route path="/todo" element={<TodoList />} />
+          <Route path="/recommend" element={<Recommend />} />
+        </Routes>
+        <BottomNav />
+      </div>
     </BrowserRouter>
   );
 }

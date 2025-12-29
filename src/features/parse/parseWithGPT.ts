@@ -8,6 +8,7 @@ const SYSTEM_PROMPT = `당신은 운동 기록을 구조화하는 전문가입�
   "name": "운동명",
   "sets": 세트 수 (숫자 또는 null),
   "reps": 반복 횟수 (숫자 또는 null),
+  "weight_kg": 무게(kg) (숫자 또는 null),
   "duration_min": 시간(분) (숫자 또는 null),
   "type": "strength" | "cardio" | "core" | "mobility" | "unknown",
   "note": "추가 메모" (문자열 또는 null)

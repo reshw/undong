@@ -110,6 +110,90 @@ body {
   color: var(--text-secondary);
 }
 
+/* Input Mode Selector (Voice vs Text) */
+.input-mode-selector {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin: 20px 0 24px;
+}
+
+.input-mode-button {
+  flex: 1;
+  max-width: 180px;
+  padding: 12px 24px;
+  border: 2px solid var(--border-color);
+  border-radius: 10px;
+  background: white;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+}
+
+.input-mode-button:hover {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.input-mode-button.active {
+  border-color: var(--primary-color);
+  background-color: var(--primary-color);
+  color: white;
+}
+
+/* Text Input Section */
+.text-input-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+}
+
+.text-input-area {
+  width: 100%;
+  max-width: 600px;
+  min-height: 140px;
+  padding: 16px;
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  font-size: 15px;
+  font-family: inherit;
+  resize: vertical;
+  line-height: 1.6;
+  transition: border-color 0.2s;
+}
+
+.text-input-area:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.text-input-area::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.6;
+}
+
+/* Add Button */
+.add-button {
+  background: none;
+  border: 1px solid var(--primary-color);
+  color: var(--primary-color);
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.add-button:hover {
+  background-color: var(--primary-color);
+  color: white;
+}
+
 .recording-section {
   display: flex;
   flex-direction: column;
@@ -351,6 +435,13 @@ body {
   border: 1px solid var(--border-color);
 }
 
+.workout-details span.weight {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+  font-weight: 600;
+}
+
 .no-details {
   font-style: italic;
 }
@@ -547,21 +638,1103 @@ body {
   background-color: var(--danger-hover);
 }
 
+/* Bottom Navigation */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 70px;
+  background: white;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 0 8px;
+  z-index: 1000;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.bottom-nav .nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+  border-radius: 12px;
+  min-width: 60px;
+}
+
+.bottom-nav .nav-item:hover {
+  background-color: var(--bg-color);
+}
+
+.bottom-nav .nav-item.active {
+  color: var(--primary-color);
+}
+
+.bottom-nav .nav-item.active svg {
+  transform: scale(1.1);
+}
+
+.bottom-nav .nav-item span {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* 3-tab layout - equal spacing */
+.bottom-nav-3 .nav-item {
+  max-width: 140px;
+}
+
+/* Layout with BottomNav */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding-bottom: 70px;
+}
+
+/* Recommend Page */
+.recommend-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.recommend-header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.recommend-header .subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.recommend-empty {
+  text-align: center;
+  padding: 60px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.recommend-empty p {
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.recommend-empty svg {
+  margin-bottom: 20px;
+  color: var(--primary-color);
+}
+
+.recommend-loading {
+  text-align: center;
+  padding: 60px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.recommend-loading p {
+  color: var(--text-secondary);
+}
+
+.recommend-result {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.recommend-content {
+  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 24px;
+  line-height: 1.8;
+}
+
+.recommend-content p {
+  margin-bottom: 12px;
+  white-space: pre-wrap;
+}
+
+.recommend-content p:last-child {
+  margin-bottom: 0;
+}
+
+.error-box {
+  background: #fee;
+  border: 1px solid #fcc;
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+}
+
+.error-box p {
+  color: var(--danger-color);
+  margin-bottom: 16px;
+}
+
+/* Profile Setup */
+.profile-setup {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.setup-instruction {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.setup-instruction h3 {
+  font-size: 17px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: var(--text-primary);
+}
+
+.instruction-text {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.profile-input {
+  width: 100%;
+  min-height: 180px;
+  padding: 16px;
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  font-size: 15px;
+  font-family: inherit;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+.profile-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.setup-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.setup-buttons .primary-button:disabled {
+  background-color: var(--text-secondary);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.setup-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+}
+
+.setup-loading p {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+/* Profile Display */
+.profile-display {
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.05) 0%, rgba(79, 70, 229, 0.02) 100%);
+  border: 2px solid var(--primary-color);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.profile-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.profile-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--primary-color);
+  margin: 0;
+}
+
+.profile-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.edit-button {
+  background: none;
+  border: 1px solid var(--primary-color);
+  color: var(--primary-color);
+  padding: 6px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.edit-button:hover {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.delete-icon-button {
+  background: none;
+  border: 1px solid var(--danger-color);
+  color: var(--danger-color);
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.delete-icon-button:hover {
+  background-color: var(--danger-color);
+  color: white;
+}
+
+.profile-content {
+  font-size: 15px;
+  line-height: 1.8;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+}
+
+/* Recommend CTA */
+.recommend-cta {
+  text-align: center;
+  padding: 40px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.recommend-cta svg {
+  margin-bottom: 16px;
+  color: var(--primary-color);
+}
+
+.recommend-cta p {
+  color: var(--text-secondary);
+  margin: 0;
+  font-size: 15px;
+}
+
+.large-button {
+  margin-top: 16px;
+  padding: 16px 40px;
+  font-size: 17px;
+}
+
+/* Result Actions */
+.result-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+/* History Workout View */
+.history-workout-view {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.history-date-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.history-date-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 18px;
+  font-weight: 600;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.session-count {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.history-session {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.session-time {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--primary-color);
+}
+
+.session-workouts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.history-workout-card {
+  background: var(--bg-color);
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px;
+  border-left-width: 4px;
+}
+
+.history-workout-card.strength {
+  border-left-color: #3b82f6;
+}
+
+.history-workout-card.cardio {
+  border-left-color: #ef4444;
+}
+
+.history-workout-card.core {
+  border-left-color: #f59e0b;
+}
+
+.history-workout-card.mobility {
+  border-left-color: #10b981;
+}
+
+.history-workout-card.unknown {
+  border-left-color: var(--text-secondary);
+}
+
+.hw-name {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--text-primary);
+}
+
+.hw-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.hw-weight {
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+.session-detail-button {
+  align-self: flex-start;
+  background: none;
+  border: 1px solid var(--primary-color);
+  color: var(--primary-color);
+  padding: 6px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.session-detail-button:hover {
+  background: var(--primary-color);
+  color: white;
+}
+
+/* Todo Page */
+.todo-header-card {
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.08) 0%, rgba(79, 70, 229, 0.02) 100%);
+  border: 2px solid var(--primary-color);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.todo-date {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--primary-color);
+  margin-bottom: 16px;
+}
+
+.todo-progress-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.progress-bar-container {
+  width: 100%;
+  height: 10px;
+  background: var(--border-color);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary-color) 0%, var(--success-color) 100%);
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.todo-source-badge {
+  display: inline-block;
+  background: var(--primary-color);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+.ai-recommendation-preview {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.recommendation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.recommendation-header h3 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.expand-button {
+  background: none;
+  border: none;
+  color: var(--primary-color);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.expand-button:hover {
+  background: rgba(79, 70, 229, 0.1);
+}
+
+.ai-recommendation-text {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  transition: max-height 0.3s ease;
+  overflow: hidden;
+}
+
+.ai-recommendation-text.collapsed {
+  max-height: 80px;
+}
+
+.ai-recommendation-text.expanded {
+  max-height: none;
+}
+
+.add-todo-button {
+  background: none;
+  border: 1px solid var(--primary-color);
+  color: var(--primary-color);
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.add-todo-button:hover {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.todo-workout-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.todo-workout-list h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.todo-workout-item {
+  display: flex;
+  gap: 14px;
+  background: var(--card-bg);
+  border: 2px solid var(--border-color);
+  border-radius: 10px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  align-items: flex-start;
+}
+
+.todo-workout-item:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.todo-workout-item.completed {
+  background: var(--bg-color);
+  border-color: var(--success-color);
+  opacity: 0.7;
+}
+
+.todo-workout-item.completed .todo-workout-name {
+  text-decoration: line-through;
+  color: var(--text-secondary);
+}
+
+.todo-checkbox {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--border-color);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: white;
+  transition: all 0.2s;
+}
+
+.todo-workout-item.completed .todo-checkbox {
+  background: var(--success-color);
+  border-color: var(--success-color);
+}
+
+.todo-checkbox svg {
+  color: white;
+}
+
+.todo-workout-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.todo-workout-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.todo-workout-specs {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.spec-weight {
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+.todo-workout-note {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.todo-completion-message {
+  background: linear-gradient(135deg, rgba(22, 163, 74, 0.1) 0%, rgba(22, 163, 74, 0.05) 100%);
+  border: 2px solid var(--success-color);
+  border-radius: 12px;
+  padding: 24px;
+  margin-top: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.completion-icon {
+  font-size: 48px;
+}
+
+.completion-text h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--success-color);
+  margin-bottom: 4px;
+}
+
+.completion-text p {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+/* Mobile Optimization */
 @media (max-width: 640px) {
   .container {
     padding: 16px;
+    padding-bottom: 90px;
+  }
+
+  .header {
+    margin-bottom: 24px;
   }
 
   .header h1 {
-    font-size: 20px;
+    font-size: 22px;
+  }
+
+  .header h2 {
+    font-size: 18px;
+  }
+
+  /* Touch-friendly buttons */
+  .nav-button,
+  .back-button {
+    min-height: 44px;
+    padding: 12px 20px;
+    font-size: 15px;
+  }
+
+  .mode-selector {
+    gap: 8px;
+    margin: 16px 0 6px;
+  }
+
+  .mode-button {
+    padding: 14px 20px;
+    font-size: 14px;
+    min-height: 48px;
+  }
+
+  .input-mode-selector {
+    gap: 8px;
+    margin: 16px 0 20px;
+  }
+
+  .input-mode-button {
+    padding: 14px 20px;
+    font-size: 14px;
+    min-height: 48px;
+  }
+
+  .text-input-section {
+    padding: 16px;
+  }
+
+  .text-input-area {
+    min-height: 130px;
+    padding: 14px;
+    font-size: 14px;
+  }
+
+  .add-button {
+    padding: 10px 18px;
+    font-size: 13px;
+    min-height: 44px;
+  }
+
+  .recording-section {
+    padding: 30px 16px;
+    gap: 20px;
   }
 
   .mic-button {
-    width: 120px;
-    height: 120px;
+    width: 130px;
+    height: 130px;
   }
 
   .status-text {
     font-size: 18px;
+  }
+
+  .hint-text {
+    font-size: 13px;
+  }
+
+  .transcript-box {
+    padding: 16px;
+    font-size: 15px;
+  }
+
+  /* Touch-friendly workout cards */
+  .workout-cards {
+    gap: 14px;
+  }
+
+  .workout-card {
+    padding: 18px;
+  }
+
+  .workout-name {
+    font-size: 17px;
+    margin-bottom: 10px;
+  }
+
+  .workout-details {
+    gap: 10px;
+  }
+
+  .workout-details span {
+    padding: 6px 12px;
+    font-size: 13px;
+    min-height: 32px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  /* Touch-friendly action buttons */
+  .action-buttons {
+    gap: 10px;
+    flex-direction: row;
+  }
+
+  .primary-button,
+  .cancel-button {
+    padding: 16px 20px;
+    font-size: 16px;
+    min-height: 52px;
+  }
+
+  .secondary-button {
+    padding: 12px 24px;
+    min-height: 44px;
+    font-size: 15px;
+  }
+
+  /* History page */
+  .history-list {
+    gap: 20px;
+  }
+
+  .log-item {
+    padding: 18px;
+    min-height: 80px;
+  }
+
+  .log-preview {
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .log-meta {
+    gap: 10px;
+    font-size: 12px;
+    margin-top: 4px;
+  }
+
+  .date-header {
+    font-size: 16px;
+    padding-bottom: 6px;
+  }
+
+  /* Detail view */
+  .detail-section {
+    gap: 18px;
+  }
+
+  .detail-date {
+    font-size: 18px;
+  }
+
+  .section {
+    padding: 16px;
+  }
+
+  .section h3 {
+    font-size: 15px;
+  }
+
+  .edit-textarea {
+    min-height: 100px;
+    font-size: 14px;
+    padding: 14px;
+  }
+
+  .delete-button {
+    min-height: 48px;
+    padding: 14px 24px;
+    font-size: 15px;
+  }
+
+  /* Bottom navigation */
+  .bottom-nav {
+    height: 75px;
+    padding: 0 4px;
+  }
+
+  .bottom-nav .nav-item {
+    min-height: 60px;
+    padding: 10px 8px;
+    gap: 6px;
+  }
+
+  .bottom-nav .nav-item span {
+    font-size: 11px;
+  }
+
+  /* 3-tab layout mobile */
+  .bottom-nav-3 .nav-item {
+    max-width: 130px;
+  }
+
+  /* Recommend page */
+  .recommend-header h1 {
+    font-size: 24px;
+  }
+
+  .recommend-header .subtitle {
+    font-size: 13px;
+  }
+
+  .recommend-content {
+    padding: 20px;
+    font-size: 15px;
+    line-height: 1.7;
+  }
+
+  .recommend-empty {
+    padding: 50px 16px;
+  }
+
+  .recommend-empty svg {
+    width: 60px;
+    height: 60px;
+  }
+
+  /* Profile setup mobile */
+  .setup-instruction {
+    padding: 16px;
+  }
+
+  .setup-instruction h3 {
+    font-size: 16px;
+  }
+
+  .instruction-text {
+    font-size: 13px;
+  }
+
+  .profile-input {
+    min-height: 150px;
+    padding: 14px;
+    font-size: 14px;
+  }
+
+  .setup-buttons {
+    flex-direction: column;
+  }
+
+  .setup-buttons .primary-button,
+  .setup-buttons .cancel-button {
+    width: 100%;
+  }
+
+  .profile-display {
+    padding: 16px;
+  }
+
+  .profile-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .profile-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .profile-content {
+    font-size: 14px;
+    line-height: 1.7;
+  }
+
+  .recommend-cta {
+    padding: 30px 16px;
+  }
+
+  .large-button {
+    width: 100%;
+    max-width: 300px;
+  }
+
+  .result-actions {
+    flex-direction: column;
+  }
+
+  .result-actions .primary-button,
+  .result-actions .secondary-button {
+    width: 100%;
+  }
+
+  /* Todo mobile */
+  .add-todo-button {
+    padding: 10px 18px;
+    font-size: 13px;
+    min-height: 44px;
+  }
+
+  .todo-header-card {
+    padding: 16px;
+  }
+
+  .todo-date {
+    font-size: 18px;
+    margin-bottom: 14px;
+  }
+
+  .recommendation-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .expand-button {
+    font-size: 12px;
+  }
+
+  .ai-recommendation-text {
+    font-size: 13px;
+  }
+
+  .ai-recommendation-text.collapsed {
+    max-height: 65px;
+  }
+
+  .todo-workout-item {
+    padding: 14px;
+  }
+
+  .todo-workout-name {
+    font-size: 15px;
+  }
+
+  .todo-workout-specs {
+    font-size: 13px;
+    gap: 8px;
+  }
+
+  .todo-completion-message {
+    padding: 20px;
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .completion-icon {
+    font-size: 60px;
+  }
+
+  .completion-text h3 {
+    font-size: 17px;
+  }
+
+  /* Error messages */
+  .error-message {
+    padding: 30px 16px;
+  }
+
+  .error-message button {
+    min-height: 44px;
+    padding: 14px 28px;
+    font-size: 15px;
+  }
+
+  .empty-state {
+    padding: 50px 16px;
+  }
+
+  .empty-state .primary-button {
+    width: 100%;
+    max-width: 280px;
+  }
+}
+
+/* Extra small screens */
+@media (max-width: 375px) {
+  .container {
+    padding: 12px;
+  }
+
+  .mode-button {
+    font-size: 13px;
+    padding: 12px 16px;
+  }
+
+  .mic-button {
+    width: 110px;
+    height: 110px;
+  }
+
+  .workout-card {
+    padding: 14px;
+  }
+
+  .workout-name {
+    font-size: 16px;
+  }
+
+  .bottom-nav .nav-item span {
+    font-size: 10px;
+  }
+
+  .primary-button,
+  .cancel-button {
+    font-size: 15px;
+    padding: 14px 16px;
   }
 }
