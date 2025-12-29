@@ -2,59 +2,92 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { RecordingState, Workout } from '../types';
 import { useSpeechRecognition } from '../features/speech/useSpeechRecognition';
+import { useWhisperRecording } from '../features/speech/useWhisperRecording';
 import { normalizeText } from '../features/normalize/normalizeText';
 import { parseWorkoutText } from '../features/parse/parseWorkoutText';
+import { parseWithGPT } from '../features/parse/parseWithGPT';
 import { saveLog, generateId, formatDate } from '../storage/logStorage';
+
+type RecordingMode = 'web-speech' | 'ai';
 
 export const Home = () => {
   const navigate = useNavigate();
+  const [mode, setMode] = useState<RecordingMode>('web-speech');
   const [state, setState] = useState<RecordingState>('idle');
   const [editableText, setEditableText] = useState('');
   const [normalizedText, setNormalizedText] = useState('');
   const [workouts, setWorkouts] = useState<Workout[]>([]);
 
-  const {
-    transcript,
-    interimTranscript,
-    error,
-    isSupported,
-    startListening,
-    stopListening,
-    resetTranscript,
-  } = useSpeechRecognition();
+  const webSpeech = useSpeechRecognition();
+  const whisper = useWhisperRecording();
 
-  const handleMicClick = () => {
+  const currentMode = mode === 'web-speech' ? webSpeech : whisper;
+  const error = currentMode.error;
+  const transcript = 'transcript' in currentMode ? currentMode.transcript : '';
+  const interimTranscript = 'interimTranscript' in currentMode ? currentMode.interimTranscript : '';
+
+  const handleMicClick = async () => {
     if (state === 'idle') {
-      resetTranscript();
+      currentMode.resetTranscript();
       setEditableText('');
       setNormalizedText('');
       setWorkouts([]);
-      startListening();
+
+      if (mode === 'web-speech') {
+        webSpeech.startListening();
+      } else {
+        await whisper.startRecording();
+      }
       setState('listening');
     } else if (state === 'listening') {
-      stopListening();
       setState('transcribing');
-      setTimeout(() => {
-        const finalText = transcript.trim();
-        setEditableText(finalText);
-        handleParse(finalText);
-      }, 500);
+
+      if (mode === 'web-speech') {
+        webSpeech.stopListening();
+        setTimeout(() => {
+          const finalText = transcript.trim();
+          setEditableText(finalText);
+          handleParse(finalText, false);
+        }, 500);
+      } else {
+        await whisper.stopRecording();
+        setTimeout(() => {
+          const finalText = whisper.transcript.trim();
+          setEditableText(finalText);
+          handleParse(finalText, true);
+        }, 1000);
+      }
     }
   };
 
-  const handleParse = (text: string) => {
+  const handleParse = async (text: string, useAI: boolean) => {
     setState('parsing');
-    setTimeout(() => {
-      const normalized = normalizeText(text);
-      setNormalizedText(normalized);
-      const parsed = parseWorkoutText(normalized);
-      setWorkouts(parsed);
+
+    try {
+      if (useAI) {
+        const parsed = await parseWithGPT(text);
+        setNormalizedText(text);
+        setWorkouts(parsed);
+      } else {
+        setTimeout(() => {
+          const normalized = normalizeText(text);
+          setNormalizedText(normalized);
+          const parsed = parseWorkoutText(normalized);
+          setWorkouts(parsed);
+          setState('review');
+        }, 300);
+        return;
+      }
       setState('review');
-    }, 300);
+    } catch (err) {
+      console.error('Parsing error:', err);
+      alert('파싱에 실패했습니다. 다시 시도해주세요.');
+      setState('idle');
+    }
   };
 
   const handleReparse = () => {
-    handleParse(editableText);
+    handleParse(editableText, mode === 'ai');
   };
 
   const handleSave = () => {
@@ -80,7 +113,7 @@ export const Home = () => {
       setEditableText('');
       setNormalizedText('');
       setWorkouts([]);
-      resetTranscript();
+      currentMode.resetTranscript();
     } catch (err) {
       alert('저장에 실패했습니다.');
     }
@@ -92,17 +125,18 @@ export const Home = () => {
       setEditableText('');
       setNormalizedText('');
       setWorkouts([]);
-      resetTranscript();
+      currentMode.resetTranscript();
     }
   };
 
-  if (!isSupported) {
+  if (mode === 'web-speech' && !webSpeech.isSupported) {
     return (
       <div className="container">
         <div className="error-message">
           <h2>음성 인식 미지원</h2>
           <p>이 브라우저는 Web Speech API를 지원하지 않습니다.</p>
-          <p>Chrome 또는 Edge 브라우저를 사용해주세요.</p>
+          <p>Chrome 또는 Edge 브라우저를 사용하거나 AI 모드를 사용해주세요.</p>
+          <button onClick={() => setMode('ai')}>AI 모드로 전환</button>
         </div>
       </div>
     );
@@ -128,6 +162,32 @@ export const Home = () => {
           히스토리
         </button>
       </div>
+
+      {state === 'idle' && (
+        <>
+          <div className="mode-selector">
+            <button
+              className={`mode-button ${mode === 'web-speech' ? 'active' : ''}`}
+              onClick={() => setMode('web-speech')}
+            >
+              기본 (무료)
+            </button>
+            <button
+              className={`mode-button ${mode === 'ai' ? 'active' : ''}`}
+              onClick={() => setMode('ai')}
+            >
+              AI (유료)
+            </button>
+          </div>
+          <div className="mode-description">
+            {mode === 'web-speech' ? (
+              <p>브라우저 내장 음성 인식 + 룰 기반 파싱</p>
+            ) : (
+              <p>Whisper 음성 인식 + GPT 스마트 파싱</p>
+            )}
+          </div>
+        </>
+      )}
 
       {state === 'idle' && (
         <div className="recording-section">

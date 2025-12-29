@@ -1,13 +1,25 @@
-# Voice Workout Log (WebSpeech MVP)
+# Voice Workout Log
 
-운동 후 "말로" 기록하는 모바일 우선 웹앱입니다. 브라우저의 Web Speech API로 음성을 텍스트로 변환하고, 간단한 정규화 후 구조화된 운동 로그로 저장/열람할 수 있습니다.
+운동 후 "말로" 기록하는 모바일 우선 웹앱입니다.
+
+## 두 가지 모드 지원
+
+### 기본 모드 (무료)
+- 브라우저 Web Speech API 음성 인식
+- 룰 기반 파싱
+- 완전 무료, 로그인 불필요
+
+### AI 모드 (유료)
+- OpenAI Whisper API 음성 인식 (정확도 향상)
+- GPT-4o-mini 스마트 파싱 (자연어 이해)
+- 월 300원 이하 비용 (개인 사용 기준)
 
 ## 기능
 
 - 음성 인식을 통한 운동 기록 입력
-- 실시간 자막 표시 (interim transcript)
+- 실시간 자막 표시 (기본 모드)
 - 운동 용어 자동 정규화
-- 운동 기록 자동 파싱 (세트, 횟수, 시간 등 추출)
+- 스마트 파싱 (세트, 횟수, 시간, 메모 자동 추출)
 - 기록 편집 및 재정리
 - 날짜별 히스토리 조회
 - localStorage 기반 오프라인 저장
@@ -19,16 +31,34 @@
 - Vite
 - React Router
 - Web Speech API
+- OpenAI API (Whisper + GPT-4o-mini)
 
 ## 실행 방법
 
-### 설치
+### 1. 설치
 
 ```bash
 npm install
 ```
 
-### 개발 서버 실행
+### 2. AI 모드 설정 (선택사항)
+
+AI 모드를 사용하려면 OpenAI API 키가 필요합니다.
+
+1. [OpenAI API Keys](https://platform.openai.com/api-keys)에서 API 키 발급
+2. `.env` 파일 생성:
+
+```bash
+cp .env.example .env
+```
+
+3. `.env` 파일에 API 키 입력:
+
+```
+VITE_OPENAI_API_KEY=sk-proj-...your-api-key
+```
+
+### 3. 개발 서버 실행
 
 ```bash
 npm run dev
@@ -147,30 +177,40 @@ Web Speech API는 모든 브라우저에서 지원되지 않습니다.
 src/
 ├── features/
 │   ├── speech/
-│   │   └── useSpeechRecognition.ts   # 음성 인식 훅
+│   │   ├── useSpeechRecognition.ts      # Web Speech API 훅
+│   │   └── useWhisperRecording.ts       # Whisper API 훅
 │   ├── normalize/
-│   │   └── normalizeText.ts          # 텍스트 정규화
+│   │   └── normalizeText.ts             # 텍스트 정규화
 │   └── parse/
-│       └── parseWorkoutText.ts       # 운동 로그 파싱
+│       ├── parseWorkoutText.ts          # 룰 기반 파싱
+│       └── parseWithGPT.ts              # GPT 파싱
 ├── storage/
-│   └── logStorage.ts                 # localStorage 관리
+│   └── logStorage.ts                    # localStorage 관리
 ├── pages/
-│   ├── Home.tsx                      # 홈/녹음 페이지
-│   └── History.tsx                   # 히스토리 페이지
+│   ├── Home.tsx                         # 홈/녹음 페이지
+│   └── History.tsx                      # 히스토리 페이지
 ├── types/
-│   └── index.ts                      # TypeScript 타입 정의
-├── App.tsx                           # 메인 앱 컴포넌트
-├── App.css                           # 스타일
-└── main.tsx                          # 엔트리 포인트
+│   ├── index.ts                         # TypeScript 타입 정의
+│   └── speech.d.ts                      # Web Speech API 타입
+├── App.tsx                              # 메인 앱 컴포넌트
+├── App.css                              # 스타일
+└── main.tsx                             # 엔트리 포인트
 ```
+
+## AI 모드 비용
+
+개인 사용 기준 (월 30회 기록):
+- Whisper API: 1분 × 30회 × $0.006 = $0.18 (약 250원)
+- GPT-4o-mini: 30회 × 0.0001 = $0.003 (약 4원)
+- **월 총 비용: 약 250원**
 
 ## 향후 개선 포인트
 
-### AI 통합
+### AI 기능 확장
 
-- OpenAI Whisper API로 음성 인식 정확도 향상
-- GPT API로 파싱 정확도 향상
-- 운동 루틴 추천 기능
+- 운동 루틴 추천 (GPT)
+- 음성 명령 (시작/종료/저장 등)
+- 운동 폼 분석 (이미지/영상 + Vision API)
 
 ### 기능 확장
 
