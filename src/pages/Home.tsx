@@ -23,14 +23,13 @@ export const Home = () => {
 
   const currentMode = mode === 'web-speech' ? webSpeech : whisper;
   const error = currentMode.error;
-  const transcript = 'transcript' in currentMode ? currentMode.transcript : '';
-  const interimTranscript = 'interimTranscript' in currentMode ? currentMode.interimTranscript : '';
 
   const handleMicClick = async () => {
     console.log('[Home] handleMicClick - Current state:', state, 'Mode:', mode);
 
     if (state === 'idle') {
       currentMode.resetTranscript();
+      webSpeech.resetTranscript();
       setEditableText('');
       setNormalizedText('');
       setWorkouts([]);
@@ -39,7 +38,9 @@ export const Home = () => {
         console.log('[Home] Starting Web Speech API');
         webSpeech.startListening();
       } else {
-        console.log('[Home] Starting Whisper recording');
+        console.log('[Home] Starting AI mode (Whisper + Web Speech for preview)');
+        // AI 모드에서도 실시간 자막을 위해 Web Speech 동시 실행
+        webSpeech.startListening();
         await whisper.startRecording();
       }
       setState('listening');
@@ -50,19 +51,21 @@ export const Home = () => {
       if (mode === 'web-speech') {
         webSpeech.stopListening();
         setTimeout(() => {
-          const finalText = transcript.trim();
+          const finalText = webSpeech.transcript.trim();
           console.log('[Home] Web Speech final text:', finalText);
           setEditableText(finalText);
           handleParse(finalText, false);
         }, 500);
       } else {
+        // AI 모드: Web Speech 중지하고 Whisper 결과 대기
+        webSpeech.stopListening();
         await whisper.stopRecording();
         setTimeout(() => {
           const finalText = whisper.transcript.trim();
           console.log('[Home] Whisper final text:', finalText);
           setEditableText(finalText);
           handleParse(finalText, true);
-        }, 1000);
+        }, 1500);
       }
     }
   };
@@ -216,7 +219,9 @@ export const Home = () => {
 
       {state === 'listening' && (
         <div className="recording-section">
-          <div className="status-text listening">듣는 중...</div>
+          <div className="status-text listening">
+            {mode === 'ai' ? '🎤 AI 녹음 중...' : '듣는 중...'}
+          </div>
           <button className="mic-button active" onClick={handleMicClick}>
             <svg width="80" height="80" viewBox="0 0 24 24" fill="currentColor">
               <rect x="6" y="6" width="12" height="12" />
@@ -224,11 +229,16 @@ export const Home = () => {
           </button>
           <div className="hint-text">탭하여 녹음 종료</div>
 
-          {(transcript || interimTranscript) && (
+          {(webSpeech.transcript || webSpeech.interimTranscript) && (
             <div className="transcript-box">
-              <div className="transcript-final">{transcript}</div>
-              {interimTranscript && (
-                <div className="transcript-interim">{interimTranscript}</div>
+              {mode === 'ai' && (
+                <div className="ai-preview-label">
+                  실시간 미리보기 (AI가 다시 처리합니다)
+                </div>
+              )}
+              <div className="transcript-final">{webSpeech.transcript}</div>
+              {webSpeech.interimTranscript && (
+                <div className="transcript-interim">{webSpeech.interimTranscript}</div>
               )}
             </div>
           )}
