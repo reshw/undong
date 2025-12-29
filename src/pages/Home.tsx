@@ -59,13 +59,10 @@ export const Home = () => {
       } else {
         // AI 모드: Web Speech 중지하고 Whisper 결과 대기
         webSpeech.stopListening();
-        await whisper.stopRecording();
-        setTimeout(() => {
-          const finalText = whisper.transcript.trim();
-          console.log('[Home] Whisper final text:', finalText);
-          setEditableText(finalText);
-          handleParse(finalText, true);
-        }, 1500);
+        const whisperResult = await whisper.stopRecording();
+        console.log('[Home] Whisper final text:', whisperResult);
+        setEditableText(whisperResult);
+        handleParse(whisperResult, true);
       }
     }
   };

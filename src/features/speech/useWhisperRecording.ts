@@ -5,7 +5,7 @@ interface WhisperRecordingResult {
   transcript: string;
   error: string | null;
   startRecording: () => void;
-  stopRecording: () => Promise<void>;
+  stopRecording: () => Promise<string>;
   resetTranscript: () => void;
 }
 
@@ -16,6 +16,7 @@ export const useWhisperRecording = (): WhisperRecordingResult => {
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const resolveTranscriptionRef = useRef<((text: string) => void) | null>(null);
 
   const startRecording = useCallback(async () => {
     try {
@@ -48,11 +49,16 @@ export const useWhisperRecording = (): WhisperRecordingResult => {
     }
   }, []);
 
-  const stopRecording = useCallback(async () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-    }
+  const stopRecording = useCallback(async (): Promise<string> => {
+    return new Promise((resolve) => {
+      if (mediaRecorderRef.current && isRecording) {
+        resolveTranscriptionRef.current = resolve;
+        mediaRecorderRef.current.stop();
+        setIsRecording(false);
+      } else {
+        resolve('');
+      }
+    });
   }, [isRecording]);
 
   const transcribeAudio = async (audioBlob: Blob) => {
@@ -95,9 +101,21 @@ export const useWhisperRecording = (): WhisperRecordingResult => {
       const data = await response.json();
       console.log('[Whisper] Transcription result:', data.text);
       setTranscript(data.text);
+
+      // Promise resolve
+      if (resolveTranscriptionRef.current) {
+        resolveTranscriptionRef.current(data.text);
+        resolveTranscriptionRef.current = null;
+      }
     } catch (err) {
       console.error('[Whisper] Transcription error:', err);
       setError(`음성 인식 실패: ${err instanceof Error ? err.message : '알 수 없는 오류'}`);
+
+      // Promise resolve with error
+      if (resolveTranscriptionRef.current) {
+        resolveTranscriptionRef.current('');
+        resolveTranscriptionRef.current = null;
+      }
     }
   };
 
