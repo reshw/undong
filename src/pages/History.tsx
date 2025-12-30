@@ -164,24 +164,6 @@ export const History = () => {
     }
   };
 
-  const handleCancelAdding = () => {
-    if (recordingState === 'listening') {
-      webSpeech.stopListening();
-      if (addMode === 'ai') {
-        whisper.stopRecording();
-      }
-    }
-    setIsAdding(false);
-    setRecordingState('idle');
-    setInputMode('voice');
-    setTextInput('');
-    setEditableText('');
-    setWorkouts([]);
-    setSelectedDate(new Date());
-    setDateMode('today');
-    webSpeech.resetTranscript();
-  };
-
   const handleCompleteAdding = () => {
     setIsAdding(false);
     setRecordingState('idle');
