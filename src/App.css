@@ -1,14 +1,19 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap');
+
 :root {
-  --primary-color: #4f46e5;
-  --primary-hover: #4338ca;
-  --danger-color: #dc2626;
-  --danger-hover: #b91c1c;
-  --success-color: #16a34a;
-  --bg-color: #f9fafb;
-  --card-bg: #ffffff;
-  --text-primary: #111827;
-  --text-secondary: #6b7280;
-  --border-color: #e5e7eb;
+  /* VSCode Dark Theme Colors */
+  --primary-color: #007ACC;
+  --primary-hover: #1C97EA;
+  --danger-color: #F48771;
+  --danger-hover: #E26D5C;
+  --success-color: #89D185;
+  --bg-color: #1E1E1E;
+  --card-bg: #252526;
+  --card-hover-bg: #2D2D30;
+  --text-primary: #CCCCCC;
+  --text-secondary: #858585;
+  --border-color: #3E3E42;
+  --input-bg: #3C3C3C;
 }
 
 * {
@@ -18,9 +23,7 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-color: var(--bg-color);
@@ -44,11 +47,13 @@ body {
 .header h1 {
   font-size: 24px;
   font-weight: 700;
+  color: var(--text-primary);
 }
 
 .header h2 {
   font-size: 20px;
   font-weight: 600;
+  color: var(--text-primary);
 }
 
 .nav-button,
@@ -56,16 +61,18 @@ body {
   background: none;
   border: 1px solid var(--border-color);
   padding: 8px 16px;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
   color: var(--text-primary);
   transition: all 0.2s;
+  font-family: 'Noto Sans KR', sans-serif;
 }
 
 .nav-button:hover,
 .back-button:hover {
-  background-color: var(--bg-color);
+  background-color: var(--card-hover-bg);
+  border-color: var(--primary-color);
 }
 
 .mode-selector {
@@ -79,25 +86,27 @@ body {
   flex: 1;
   max-width: 180px;
   padding: 12px 24px;
-  border: 2px solid var(--border-color);
-  border-radius: 10px;
-  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--card-bg);
   cursor: pointer;
   font-size: 15px;
   font-weight: 600;
   color: var(--text-secondary);
   transition: all 0.2s;
+  font-family: 'Noto Sans KR', sans-serif;
 }
 
 .mode-button:hover {
   border-color: var(--primary-color);
   color: var(--primary-color);
+  background: var(--card-hover-bg);
 }
 
 .mode-button.active {
   border-color: var(--primary-color);
   background-color: var(--primary-color);
-  color: white;
+  color: #FFFFFF;
 }
 
 .mode-description {
@@ -122,25 +131,27 @@ body {
   flex: 1;
   max-width: 180px;
   padding: 12px 24px;
-  border: 2px solid var(--border-color);
-  border-radius: 10px;
-  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--card-bg);
   cursor: pointer;
   font-size: 15px;
   font-weight: 600;
   color: var(--text-secondary);
   transition: all 0.2s;
+  font-family: 'Noto Sans KR', sans-serif;
 }
 
 .input-mode-button:hover {
   border-color: var(--primary-color);
   color: var(--primary-color);
+  background: var(--card-hover-bg);
 }
 
 .input-mode-button.active {
   border-color: var(--primary-color);
   background-color: var(--primary-color);
-  color: white;
+  color: #FFFFFF;
 }
 
 /* Text Input Section */
@@ -157,13 +168,15 @@ body {
   max-width: 600px;
   min-height: 140px;
   padding: 16px;
-  border: 2px solid var(--border-color);
-  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
   font-size: 15px;
-  font-family: inherit;
+  font-family: 'Noto Sans KR', sans-serif;
   resize: vertical;
   line-height: 1.6;
   transition: border-color 0.2s;
+  background: var(--input-bg);
+  color: var(--text-primary);
 }
 
 .text-input-area:focus {
@@ -173,7 +186,7 @@ body {
 
 .text-input-area::placeholder {
   color: var(--text-secondary);
-  opacity: 0.6;
+  opacity: 0.7;
 }
 
 /* Add Button */
@@ -182,16 +195,17 @@ body {
   border: 1px solid var(--primary-color);
   color: var(--primary-color);
   padding: 8px 16px;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
   transition: all 0.2s;
+  font-family: 'Noto Sans KR', sans-serif;
 }
 
 .add-button:hover {
   background-color: var(--primary-color);
-  color: white;
+  color: #FFFFFF;
 }
 
 .recording-section {
@@ -205,7 +219,7 @@ body {
 .status-text {
   font-size: 20px;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--text-primary);
 }
 
 .status-text.listening {
@@ -224,12 +238,13 @@ body {
   align-items: center;
   justify-content: center;
   transition: all 0.3s;
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+  box-shadow: 0 0 20px rgba(0, 122, 204, 0.3);
 }
 
 .mic-button:hover {
   background-color: var(--primary-hover);
   transform: scale(1.05);
+  box-shadow: 0 0 30px rgba(0, 122, 204, 0.5);
 }
 
 .mic-button.active {
@@ -239,10 +254,10 @@ body {
 
 @keyframes pulse {
   0%, 100% {
-    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+    box-shadow: 0 0 20px rgba(244, 135, 113, 0.4);
   }
   50% {
-    box-shadow: 0 4px 24px rgba(220, 38, 38, 0.6);
+    box-shadow: 0 0 40px rgba(244, 135, 113, 0.8);
   }
 }
 
@@ -250,7 +265,7 @@ body {
 .date-selector-section {
   background: var(--card-bg);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 20px;
   margin-bottom: 24px;
 }
@@ -271,37 +286,42 @@ body {
 .date-mode-button {
   flex: 1;
   padding: 10px 20px;
-  border: 2px solid var(--border-color);
-  border-radius: 8px;
-  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--input-bg);
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
   color: var(--text-secondary);
   transition: all 0.2s;
+  font-family: 'Noto Sans KR', sans-serif;
 }
 
 .date-mode-button:hover {
   border-color: var(--primary-color);
   color: var(--primary-color);
+  background: var(--card-hover-bg);
 }
 
 .date-mode-button.active {
   border-color: var(--primary-color);
   background-color: var(--primary-color);
-  color: white;
+  color: #FFFFFF;
 }
 
 .date-picker {
   width: 100%;
   padding: 12px;
-  border: 2px solid var(--border-color);
-  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
   font-size: 14px;
-  font-family: inherit;
+  font-family: 'Noto Sans KR', sans-serif;
   margin-bottom: 12px;
   cursor: pointer;
   transition: border-color 0.2s;
+  background: var(--input-bg);
+  color: var(--text-primary);
+  color-scheme: dark;
 }
 
 .date-picker:focus {
@@ -312,7 +332,7 @@ body {
 .selected-date-display {
   text-align: center;
   padding: 8px;
-  background: var(--bg-color);
+  background: var(--input-bg);
   border-radius: 6px;
   font-size: 14px;
   color: var(--text-secondary);
@@ -333,7 +353,7 @@ body {
   max-width: 600px;
   margin: 16px auto 8px;
   padding: 12px 16px;
-  background: var(--bg-color);
+  background: var(--card-bg);
   border-radius: 8px;
   border: 1px solid var(--border-color);
 }
@@ -343,7 +363,7 @@ body {
   font-weight: 500;
   color: var(--text-primary);
   padding: 4px 8px;
-  background: white;
+  background: var(--input-bg);
   border-radius: 4px;
   white-space: nowrap;
 }
@@ -381,7 +401,7 @@ body {
   max-width: 600px;
   background: var(--card-bg);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 20px;
   min-height: 120px;
   max-height: 300px;
@@ -394,7 +414,7 @@ body {
   font-weight: 600;
   margin-bottom: 12px;
   padding: 6px 12px;
-  background: rgba(79, 70, 229, 0.1);
+  background: rgba(0, 122, 204, 0.15);
   border-radius: 6px;
   text-align: center;
 }
@@ -403,6 +423,7 @@ body {
   font-size: 16px;
   line-height: 1.6;
   margin-bottom: 8px;
+  color: var(--text-primary);
 }
 
 .transcript-interim {
@@ -416,9 +437,9 @@ body {
   text-align: center;
   margin-top: 20px;
   padding: 20px;
-  background: white;
+  background: var(--card-bg);
   border: 2px dashed var(--primary-color);
-  border-radius: 12px;
+  border-radius: 8px;
   max-width: 400px;
 }
 
@@ -456,7 +477,7 @@ body {
 .section {
   background: var(--card-bg);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 20px;
 }
 
@@ -464,6 +485,7 @@ body {
   font-size: 16px;
   font-weight: 600;
   margin-bottom: 12px;
+  color: var(--text-primary);
 }
 
 .edit-textarea {
@@ -471,11 +493,13 @@ body {
   min-height: 120px;
   padding: 12px;
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: 6px;
   font-size: 15px;
-  font-family: inherit;
+  font-family: 'Noto Sans KR', sans-serif;
   resize: vertical;
   margin-bottom: 12px;
+  background: var(--input-bg);
+  color: var(--text-primary);
 }
 
 .edit-textarea:focus {
@@ -488,16 +512,17 @@ body {
   border: 1px solid var(--primary-color);
   color: var(--primary-color);
   padding: 10px 20px;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
   transition: all 0.2s;
+  font-family: 'Noto Sans KR', sans-serif;
 }
 
 .secondary-button:hover {
   background-color: var(--primary-color);
-  color: white;
+  color: #FFFFFF;
 }
 
 .workout-cards {
@@ -507,47 +532,43 @@ body {
 }
 
 .workout-card {
-  background: var(--bg-color);
-  border: 2px solid var(--border-color);
-  border-radius: 10px;
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
   padding: 16px;
   position: relative;
+  border-left-width: 4px;
 }
 
 .workout-card.strength {
   border-left-color: #3b82f6;
-  border-left-width: 4px;
 }
 
 .workout-card.cardio {
   border-left-color: #ef4444;
-  border-left-width: 4px;
 }
 
 .workout-card.core {
   border-left-color: #f59e0b;
-  border-left-width: 4px;
 }
 
 .workout-card.mobility {
   border-left-color: #10b981;
-  border-left-width: 4px;
 }
 
 .workout-card.snowboard {
   border-left-color: #8b5cf6;
-  border-left-width: 4px;
 }
 
 .workout-card.unknown {
   border-left-color: var(--text-secondary);
-  border-left-width: 4px;
 }
 
 .workout-name {
   font-size: 18px;
   font-weight: 600;
   margin-bottom: 8px;
+  color: var(--text-primary);
 }
 
 .workout-details {
@@ -559,15 +580,15 @@ body {
 }
 
 .workout-details span {
-  background: white;
+  background: var(--card-bg);
   padding: 4px 10px;
-  border-radius: 6px;
+  border-radius: 4px;
   border: 1px solid var(--border-color);
 }
 
 .workout-details span.weight {
   background: var(--primary-color);
-  color: white;
+  color: #FFFFFF;
   border-color: var(--primary-color);
   font-weight: 600;
 }
@@ -590,7 +611,7 @@ body {
   font-size: 11px;
   text-transform: uppercase;
   color: var(--text-secondary);
-  background: white;
+  background: var(--card-bg);
   padding: 4px 8px;
   border-radius: 4px;
   border: 1px solid var(--border-color);
@@ -611,18 +632,20 @@ body {
 .primary-button {
   flex: 1;
   background-color: var(--primary-color);
-  color: white;
+  color: #FFFFFF;
   border: none;
   padding: 14px 24px;
-  border-radius: 10px;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 16px;
   font-weight: 600;
   transition: all 0.2s;
+  font-family: 'Noto Sans KR', sans-serif;
 }
 
 .primary-button:hover {
   background-color: var(--primary-hover);
+  box-shadow: 0 0 15px rgba(0, 122, 204, 0.3);
 }
 
 .cancel-button {
@@ -631,15 +654,18 @@ body {
   border: 1px solid var(--border-color);
   color: var(--text-secondary);
   padding: 14px 24px;
-  border-radius: 10px;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 16px;
   font-weight: 500;
   transition: all 0.2s;
+  font-family: 'Noto Sans KR', sans-serif;
 }
 
 .cancel-button:hover {
-  background-color: var(--bg-color);
+  background-color: var(--card-hover-bg);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
 }
 
 .error-message {
@@ -663,10 +689,11 @@ body {
   color: white;
   border: none;
   padding: 12px 24px;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
+  font-family: 'Noto Sans KR', sans-serif;
 }
 
 .history-list {
@@ -686,21 +713,22 @@ body {
   font-weight: 600;
   color: var(--text-primary);
   padding-bottom: 8px;
-  border-bottom: 2px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .log-item {
   background: var(--card-bg);
   border: 1px solid var(--border-color);
-  border-radius: 10px;
+  border-radius: 8px;
   padding: 16px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .log-item:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 0 15px rgba(0, 122, 204, 0.2);
   transform: translateY(-2px);
+  border-color: var(--primary-color);
 }
 
 .log-preview {
@@ -749,6 +777,7 @@ body {
   font-size: 15px;
   line-height: 1.6;
   white-space: pre-wrap;
+  color: var(--text-primary);
 }
 
 .delete-button {
@@ -756,12 +785,13 @@ body {
   color: white;
   border: none;
   padding: 12px 24px;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
   transition: all 0.2s;
   margin-top: 12px;
+  font-family: 'Noto Sans KR', sans-serif;
 }
 
 .delete-button:hover {
@@ -775,14 +805,14 @@ body {
   left: 0;
   right: 0;
   height: 70px;
-  background: white;
+  background: var(--card-bg);
   border-top: 1px solid var(--border-color);
   display: flex;
   justify-content: space-around;
   align-items: center;
   padding: 0 8px;
   z-index: 1000;
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 -2px 20px rgba(0, 0, 0, 0.3);
 }
 
 .bottom-nav .nav-item {
@@ -798,12 +828,13 @@ body {
   cursor: pointer;
   color: var(--text-secondary);
   transition: all 0.2s;
-  border-radius: 12px;
+  border-radius: 8px;
   min-width: 60px;
+  font-family: 'Noto Sans KR', sans-serif;
 }
 
 .bottom-nav .nav-item:hover {
-  background-color: var(--bg-color);
+  background-color: var(--card-hover-bg);
 }
 
 .bottom-nav .nav-item.active {
@@ -840,10 +871,10 @@ body {
   left: 0;
   right: 0;
   height: 60px;
-  background: white;
+  background: var(--card-bg);
   border-bottom: 1px solid var(--border-color);
   z-index: 1000;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.3);
 }
 
 .header-content {
@@ -873,21 +904,23 @@ body {
   gap: 10px;
   background: none;
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 6px 12px;
   cursor: pointer;
   transition: all 0.2s;
+  font-family: 'Noto Sans KR', sans-serif;
 }
 
 .profile-button:hover {
-  background-color: var(--bg-color);
+  background-color: var(--card-hover-bg);
+  border-color: var(--primary-color);
 }
 
 .profile-avatar {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary-color) 0%, #6366f1 100%);
+  background: var(--primary-color);
   color: white;
   display: flex;
   align-items: center;
@@ -916,10 +949,10 @@ body {
   top: calc(100% + 8px);
   right: 0;
   min-width: 250px;
-  background: white;
+  background: var(--card-bg);
   border: 1px solid var(--border-color);
-  border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
   overflow: hidden;
   animation: dropdownFadeIn 0.2s ease;
 }
@@ -937,7 +970,7 @@ body {
 
 .dropdown-header {
   padding: 16px;
-  background: var(--bg-color);
+  background: var(--input-bg);
 }
 
 .dropdown-user-info {
@@ -950,7 +983,7 @@ body {
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary-color) 0%, #6366f1 100%);
+  background: var(--primary-color);
   color: white;
   display: flex;
   align-items: center;
@@ -993,10 +1026,11 @@ body {
   color: var(--text-primary);
   transition: all 0.2s;
   text-align: left;
+  font-family: 'Noto Sans KR', sans-serif;
 }
 
 .dropdown-item:hover {
-  background: var(--bg-color);
+  background: var(--card-hover-bg);
 }
 
 .dropdown-item svg {
@@ -1013,6 +1047,7 @@ body {
   font-size: 28px;
   font-weight: 700;
   margin-bottom: 8px;
+  color: var(--text-primary);
 }
 
 .recommend-header .subtitle {
@@ -1059,9 +1094,9 @@ body {
 }
 
 .recommend-content {
-  background: white;
+  background: var(--card-bg);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 24px;
   line-height: 1.8;
 }
@@ -1069,6 +1104,7 @@ body {
 .recommend-content p {
   margin-bottom: 12px;
   white-space: pre-wrap;
+  color: var(--text-primary);
 }
 
 .recommend-content p:last-child {
@@ -1076,9 +1112,9 @@ body {
 }
 
 .error-box {
-  background: #fee;
-  border: 1px solid #fcc;
-  border-radius: 12px;
+  background: rgba(244, 135, 113, 0.1);
+  border: 1px solid var(--danger-color);
+  border-radius: 8px;
   padding: 20px;
   text-align: center;
 }
@@ -1098,7 +1134,7 @@ body {
 .setup-instruction {
   background: var(--card-bg);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 20px;
 }
 
@@ -1119,12 +1155,14 @@ body {
   width: 100%;
   min-height: 180px;
   padding: 16px;
-  border: 2px solid var(--border-color);
-  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
   font-size: 15px;
-  font-family: inherit;
+  font-family: 'Noto Sans KR', sans-serif;
   resize: vertical;
   line-height: 1.6;
+  background: var(--input-bg);
+  color: var(--text-primary);
 }
 
 .profile-input:focus {
@@ -1158,9 +1196,9 @@ body {
 
 /* Profile Display */
 .profile-display {
-  background: linear-gradient(135deg, rgba(79, 70, 229, 0.05) 0%, rgba(79, 70, 229, 0.02) 100%);
+  background: rgba(0, 122, 204, 0.1);
   border: 2px solid var(--primary-color);
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 20px;
   margin-bottom: 24px;
 }
@@ -1194,6 +1232,7 @@ body {
   font-size: 13px;
   font-weight: 500;
   transition: all 0.2s;
+  font-family: 'Noto Sans KR', sans-serif;
 }
 
 .edit-button:hover {
@@ -1211,6 +1250,7 @@ body {
   font-size: 13px;
   font-weight: 500;
   transition: all 0.2s;
+  font-family: 'Noto Sans KR', sans-serif;
 }
 
 .delete-icon-button:hover {
@@ -1263,7 +1303,7 @@ body {
 .today-feeling-section {
   background: var(--card-bg);
   border: 2px solid var(--primary-color);
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 24px;
   margin-bottom: 24px;
 }
@@ -1279,14 +1319,16 @@ body {
   width: 100%;
   min-height: 100px;
   padding: 14px;
-  border: 2px solid var(--border-color);
-  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
   font-size: 15px;
-  font-family: inherit;
+  font-family: 'Noto Sans KR', sans-serif;
   resize: vertical;
   line-height: 1.6;
   transition: border-color 0.2s;
   margin-bottom: 12px;
+  background: var(--input-bg);
+  color: var(--text-primary);
 }
 
 .feeling-input:focus {
@@ -1326,7 +1368,7 @@ body {
   font-size: 18px;
   font-weight: 600;
   padding-bottom: 8px;
-  border-bottom: 2px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
   color: var(--text-primary);
 }
 
@@ -1339,7 +1381,7 @@ body {
 .history-session {
   background: var(--card-bg);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 16px;
   display: flex;
   flex-direction: column;
@@ -1359,9 +1401,9 @@ body {
 }
 
 .history-workout-card {
-  background: var(--bg-color);
-  border: 2px solid var(--border-color);
-  border-radius: 8px;
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
   padding: 12px;
   border-left-width: 4px;
 }
@@ -1421,6 +1463,7 @@ body {
   font-size: 13px;
   font-weight: 500;
   transition: all 0.2s;
+  font-family: 'Noto Sans KR', sans-serif;
 }
 
 .session-detail-button:hover {
@@ -1430,9 +1473,9 @@ body {
 
 /* Todo Page */
 .todo-header-card {
-  background: linear-gradient(135deg, rgba(79, 70, 229, 0.08) 0%, rgba(79, 70, 229, 0.02) 100%);
+  background: rgba(0, 122, 204, 0.1);
   border: 2px solid var(--primary-color);
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 20px;
   margin-bottom: 24px;
 }
@@ -1484,7 +1527,7 @@ body {
 .ai-recommendation-preview {
   background: var(--card-bg);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 16px;
   margin-bottom: 20px;
 }
@@ -1515,10 +1558,11 @@ body {
   padding: 4px 8px;
   border-radius: 4px;
   transition: all 0.2s;
+  font-family: 'Noto Sans KR', sans-serif;
 }
 
 .expand-button:hover {
-  background: rgba(79, 70, 229, 0.1);
+  background: rgba(0, 122, 204, 0.15);
 }
 
 .ai-recommendation-text {
@@ -1543,11 +1587,12 @@ body {
   border: 1px solid var(--primary-color);
   color: var(--primary-color);
   padding: 8px 16px;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
   transition: all 0.2s;
+  font-family: 'Noto Sans KR', sans-serif;
 }
 
 .add-todo-button:hover {
@@ -1565,14 +1610,15 @@ body {
   font-size: 16px;
   font-weight: 600;
   margin-bottom: 4px;
+  color: var(--text-primary);
 }
 
 .todo-workout-item {
   display: flex;
   gap: 14px;
   background: var(--card-bg);
-  border: 2px solid var(--border-color);
-  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
   padding: 16px;
   cursor: pointer;
   transition: all 0.2s;
@@ -1580,11 +1626,11 @@ body {
 }
 
 .todo-workout-item:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 0 15px rgba(0, 122, 204, 0.2);
 }
 
 .todo-workout-item.completed {
-  background: var(--bg-color);
+  background: var(--input-bg);
   border-color: var(--success-color);
   opacity: 0.7;
 }
@@ -1603,7 +1649,7 @@ body {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  background: white;
+  background: var(--input-bg);
   transition: all 0.2s;
 }
 
@@ -1649,9 +1695,9 @@ body {
 }
 
 .todo-completion-message {
-  background: linear-gradient(135deg, rgba(22, 163, 74, 0.1) 0%, rgba(22, 163, 74, 0.05) 100%);
+  background: rgba(137, 209, 133, 0.1);
   border: 2px solid var(--success-color);
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 24px;
   margin-top: 20px;
   display: flex;
@@ -1673,422 +1719,6 @@ body {
 .completion-text p {
   font-size: 14px;
   color: var(--text-secondary);
-}
-
-/* Mobile Optimization */
-@media (max-width: 640px) {
-  .container {
-    padding: 16px;
-    padding-bottom: 90px;
-  }
-
-  .header {
-    margin-bottom: 24px;
-  }
-
-  .header h1 {
-    font-size: 22px;
-  }
-
-  .header h2 {
-    font-size: 18px;
-  }
-
-  /* Touch-friendly buttons */
-  .nav-button,
-  .back-button {
-    min-height: 44px;
-    padding: 12px 20px;
-    font-size: 15px;
-  }
-
-  .mode-selector {
-    gap: 8px;
-    margin: 16px 0 6px;
-  }
-
-  .mode-button {
-    padding: 14px 20px;
-    font-size: 14px;
-    min-height: 48px;
-  }
-
-  .input-mode-selector {
-    gap: 8px;
-    margin: 16px 0 20px;
-  }
-
-  .input-mode-button {
-    padding: 14px 20px;
-    font-size: 14px;
-    min-height: 48px;
-  }
-
-  .text-input-section {
-    padding: 16px;
-  }
-
-  .text-input-area {
-    min-height: 130px;
-    padding: 14px;
-    font-size: 14px;
-  }
-
-  .add-button {
-    padding: 10px 18px;
-    font-size: 13px;
-    min-height: 44px;
-  }
-
-  .recording-section {
-    padding: 30px 16px;
-    gap: 20px;
-  }
-
-  .mic-button {
-    width: 130px;
-    height: 130px;
-  }
-
-  .status-text {
-    font-size: 18px;
-  }
-
-  .hint-text {
-    font-size: 13px;
-  }
-
-  .transcript-box {
-    padding: 16px;
-    font-size: 15px;
-  }
-
-  /* Touch-friendly workout cards */
-  .workout-cards {
-    gap: 14px;
-  }
-
-  .workout-card {
-    padding: 18px;
-  }
-
-  .workout-name {
-    font-size: 17px;
-    margin-bottom: 10px;
-  }
-
-  .workout-details {
-    gap: 10px;
-  }
-
-  .workout-details span {
-    padding: 6px 12px;
-    font-size: 13px;
-    min-height: 32px;
-    display: inline-flex;
-    align-items: center;
-  }
-
-  /* Touch-friendly action buttons */
-  .action-buttons {
-    gap: 10px;
-    flex-direction: row;
-  }
-
-  .primary-button,
-  .cancel-button {
-    padding: 16px 20px;
-    font-size: 16px;
-    min-height: 52px;
-  }
-
-  .secondary-button {
-    padding: 12px 24px;
-    min-height: 44px;
-    font-size: 15px;
-  }
-
-  /* History page */
-  .history-list {
-    gap: 20px;
-  }
-
-  .log-item {
-    padding: 18px;
-    min-height: 80px;
-  }
-
-  .log-preview {
-    font-size: 14px;
-    line-height: 1.6;
-  }
-
-  .log-meta {
-    gap: 10px;
-    font-size: 12px;
-    margin-top: 4px;
-  }
-
-  .date-header {
-    font-size: 16px;
-    padding-bottom: 6px;
-  }
-
-  /* Detail view */
-  .detail-section {
-    gap: 18px;
-  }
-
-  .detail-date {
-    font-size: 18px;
-  }
-
-  .section {
-    padding: 16px;
-  }
-
-  .section h3 {
-    font-size: 15px;
-  }
-
-  .edit-textarea {
-    min-height: 100px;
-    font-size: 14px;
-    padding: 14px;
-  }
-
-  .delete-button {
-    min-height: 48px;
-    padding: 14px 24px;
-    font-size: 15px;
-  }
-
-  /* Bottom navigation */
-  .bottom-nav {
-    height: 75px;
-    padding: 0 4px;
-  }
-
-  .bottom-nav .nav-item {
-    min-height: 60px;
-    padding: 10px 8px;
-    gap: 6px;
-  }
-
-  .bottom-nav .nav-item span {
-    font-size: 11px;
-  }
-
-  /* 3-tab layout mobile */
-  .bottom-nav-3 .nav-item {
-    max-width: 130px;
-  }
-
-  /* Recommend page */
-  .recommend-header h1 {
-    font-size: 24px;
-  }
-
-  .recommend-header .subtitle {
-    font-size: 13px;
-  }
-
-  .recommend-content {
-    padding: 20px;
-    font-size: 15px;
-    line-height: 1.7;
-  }
-
-  .recommend-empty {
-    padding: 50px 16px;
-  }
-
-  .recommend-empty svg {
-    width: 60px;
-    height: 60px;
-  }
-
-  /* Profile setup mobile */
-  .setup-instruction {
-    padding: 16px;
-  }
-
-  .setup-instruction h3 {
-    font-size: 16px;
-  }
-
-  .instruction-text {
-    font-size: 13px;
-  }
-
-  .profile-input {
-    min-height: 150px;
-    padding: 14px;
-    font-size: 14px;
-  }
-
-  .setup-buttons {
-    flex-direction: column;
-  }
-
-  .setup-buttons .primary-button,
-  .setup-buttons .cancel-button {
-    width: 100%;
-  }
-
-  .profile-display {
-    padding: 16px;
-  }
-
-  .profile-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-
-  .profile-actions {
-    width: 100%;
-    justify-content: flex-end;
-  }
-
-  .profile-content {
-    font-size: 14px;
-    line-height: 1.7;
-  }
-
-  .recommend-cta {
-    padding: 30px 16px;
-  }
-
-  .large-button {
-    width: 100%;
-    max-width: 300px;
-  }
-
-  .result-actions {
-    flex-direction: column;
-  }
-
-  .result-actions .primary-button,
-  .result-actions .secondary-button {
-    width: 100%;
-  }
-
-  /* Todo mobile */
-  .add-todo-button {
-    padding: 10px 18px;
-    font-size: 13px;
-    min-height: 44px;
-  }
-
-  .todo-header-card {
-    padding: 16px;
-  }
-
-  .todo-date {
-    font-size: 18px;
-    margin-bottom: 14px;
-  }
-
-  .recommendation-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-  }
-
-  .expand-button {
-    font-size: 12px;
-  }
-
-  .ai-recommendation-text {
-    font-size: 13px;
-  }
-
-  .ai-recommendation-text.collapsed {
-    max-height: 65px;
-  }
-
-  .todo-workout-item {
-    padding: 14px;
-  }
-
-  .todo-workout-name {
-    font-size: 15px;
-  }
-
-  .todo-workout-specs {
-    font-size: 13px;
-    gap: 8px;
-  }
-
-  .todo-completion-message {
-    padding: 20px;
-    flex-direction: column;
-    text-align: center;
-  }
-
-  .completion-icon {
-    font-size: 60px;
-  }
-
-  .completion-text h3 {
-    font-size: 17px;
-  }
-
-  /* Error messages */
-  .error-message {
-    padding: 30px 16px;
-  }
-
-  .error-message button {
-    min-height: 44px;
-    padding: 14px 28px;
-    font-size: 15px;
-  }
-
-  .empty-state {
-    padding: 50px 16px;
-  }
-
-  .empty-state .primary-button {
-    width: 100%;
-    max-width: 280px;
-  }
-}
-
-/* Extra small screens */
-@media (max-width: 375px) {
-  .container {
-    padding: 12px;
-  }
-
-  .mode-button {
-    font-size: 13px;
-    padding: 12px 16px;
-  }
-
-  .mic-button {
-    width: 110px;
-    height: 110px;
-  }
-
-  .workout-card {
-    padding: 14px;
-  }
-
-  .workout-name {
-    font-size: 16px;
-  }
-
-  .bottom-nav .nav-item span {
-    font-size: 10px;
-  }
-
-  .primary-button,
-  .cancel-button {
-    font-size: 15px;
-    padding: 14px 16px;
-  }
 }
 
 /* Login Page */
@@ -2118,7 +1748,7 @@ body {
   gap: 20px;
   background: var(--card-bg);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 32px;
   margin-bottom: 24px;
 }
@@ -2140,11 +1770,13 @@ body {
 .form-group input {
   width: 100%;
   padding: 12px 16px;
-  border: 2px solid var(--border-color);
-  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
   font-size: 15px;
-  font-family: inherit;
+  font-family: 'Noto Sans KR', sans-serif;
   transition: border-color 0.2s;
+  background: var(--input-bg);
+  color: var(--text-primary);
 }
 
 .form-group input:focus {
@@ -2153,23 +1785,14 @@ body {
 }
 
 .form-group input:disabled {
-  background-color: var(--bg-color);
+  background-color: var(--card-hover-bg);
   cursor: not-allowed;
 }
 
-.error-message {
-  background: #fee;
-  border: 1px solid #fcc;
-  border-radius: 8px;
-  padding: 12px;
-  color: var(--danger-color);
-  font-size: 14px;
-}
-
 .login-hint {
-  background: var(--bg-color);
+  background: var(--card-bg);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 20px;
 }
 
@@ -2201,7 +1824,7 @@ body {
   margin-bottom: 32px;
   background: var(--card-bg);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 16px;
 }
 
@@ -2210,7 +1833,7 @@ body {
   border: 1px solid var(--border-color);
   width: 40px;
   height: 40px;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 20px;
   color: var(--text-primary);
@@ -2218,10 +1841,11 @@ body {
   align-items: center;
   justify-content: center;
   transition: all 0.2s;
+  font-family: 'Noto Sans KR', sans-serif;
 }
 
 .month-nav-button:hover {
-  background-color: var(--bg-color);
+  background-color: var(--card-hover-bg);
   border-color: var(--primary-color);
   color: var(--primary-color);
 }
@@ -2237,7 +1861,7 @@ body {
 .stats-section {
   background: var(--card-bg);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 24px;
   margin-bottom: 24px;
 }
@@ -2257,9 +1881,9 @@ body {
 }
 
 .stat-card {
-  background: var(--bg-color);
-  border: 2px solid var(--border-color);
-  border-radius: 10px;
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
   padding: 20px;
   text-align: center;
   transition: all 0.2s;
@@ -2301,15 +1925,15 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: var(--bg-color);
+  background: var(--input-bg);
   padding: 10px 16px;
-  border-radius: 8px;
+  border-radius: 6px;
   border: 1px solid var(--border-color);
 }
 
 .type-badge {
   padding: 4px 10px;
-  border-radius: 6px;
+  border-radius: 4px;
   font-size: 12px;
   font-weight: 600;
   color: white;
@@ -2334,7 +1958,7 @@ body {
 .calendar-section {
   background: var(--card-bg);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 24px;
   margin-bottom: 24px;
 }
@@ -2363,9 +1987,9 @@ body {
 
 .calendar-day {
   aspect-ratio: 1;
-  background: var(--bg-color);
+  background: var(--input-bg);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 8px;
   display: flex;
   flex-direction: column;
@@ -2381,14 +2005,14 @@ body {
 }
 
 .calendar-day.has-workout {
-  background: linear-gradient(135deg, rgba(79, 70, 229, 0.05) 0%, rgba(79, 70, 229, 0.02) 100%);
+  background: rgba(0, 122, 204, 0.1);
   border-color: var(--primary-color);
   cursor: pointer;
 }
 
 .calendar-day.has-workout:hover {
   transform: scale(1.05);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 0 15px rgba(0, 122, 204, 0.3);
 }
 
 .day-number {
@@ -2432,8 +2056,8 @@ body {
   justify-content: center;
   flex-wrap: wrap;
   padding: 16px;
-  background: var(--bg-color);
-  border-radius: 8px;
+  background: var(--input-bg);
+  border-radius: 6px;
 }
 
 .legend-item {
@@ -2478,4 +2102,80 @@ body {
 .bottom-nav-4 .nav-item svg {
   width: 22px;
   height: 22px;
+}
+
+/* Mobile Optimization */
+@media (max-width: 640px) {
+  .container {
+    padding: 16px;
+    padding-bottom: 90px;
+  }
+
+  .header {
+    margin-bottom: 24px;
+  }
+
+  .header h1 {
+    font-size: 22px;
+  }
+
+  .header h2 {
+    font-size: 18px;
+  }
+
+  .mic-button {
+    width: 130px;
+    height: 130px;
+  }
+
+  .workout-cards {
+    gap: 14px;
+  }
+
+  .workout-card {
+    padding: 18px;
+  }
+
+  .workout-name {
+    font-size: 17px;
+    margin-bottom: 10px;
+  }
+
+  .primary-button,
+  .cancel-button {
+    padding: 16px 20px;
+    font-size: 16px;
+    min-height: 52px;
+  }
+
+  .bottom-nav {
+    height: 75px;
+    padding: 0 4px;
+  }
+
+  .bottom-nav .nav-item {
+    min-height: 60px;
+    padding: 10px 8px;
+    gap: 6px;
+  }
+
+  .bottom-nav .nav-item span {
+    font-size: 11px;
+  }
+}
+
+/* Extra small screens */
+@media (max-width: 375px) {
+  .container {
+    padding: 12px;
+  }
+
+  .mic-button {
+    width: 110px;
+    height: 110px;
+  }
+
+  .bottom-nav .nav-item span {
+    font-size: 10px;
+  }
 }
