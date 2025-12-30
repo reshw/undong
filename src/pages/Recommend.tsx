@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getAllLogs, getUserProfile, saveUserProfile, deleteUserProfile, saveTodo, getTodayTodo, generateId, formatDate } from '../storage/logStorage';
+import { getAllLogs, getUserProfile, saveUserProfile, deleteUserProfile } from '../storage/supabaseStorage';
+import { saveTodo, getTodayTodo, generateId, formatDate } from '../storage/logStorage';
 import type { WorkoutLog, UserProfile, DailyTodo, TodoWorkout } from '../types';
 
 type ViewMode = 'setup' | 'ready' | 'loading' | 'result';
@@ -19,8 +20,8 @@ export const Recommend = () => {
     loadProfile();
   }, []);
 
-  const loadProfile = () => {
-    const savedProfile = getUserProfile();
+  const loadProfile = async () => {
+    const savedProfile = await getUserProfile();
     setProfile(savedProfile);
     if (!savedProfile) {
       setViewMode('setup');
@@ -92,7 +93,7 @@ export const Recommend = () => {
           createdAt: Date.now(),
           updatedAt: Date.now(),
         };
-        saveUserProfile(newProfile);
+        await saveUserProfile(newProfile);
         setProfile(newProfile);
         setViewMode('ready');
         setUserInput('');
@@ -114,12 +115,16 @@ export const Recommend = () => {
     setViewMode('setup');
   };
 
-  const handleDeleteProfile = () => {
+  const handleDeleteProfile = async () => {
     if (confirm('프로필을 삭제하시겠습니까? 운동 기록은 유지됩니다.')) {
-      deleteUserProfile();
-      setProfile(null);
-      setUserInput('');
-      setViewMode('setup');
+      try {
+        await deleteUserProfile();
+        setProfile(null);
+        setUserInput('');
+        setViewMode('setup');
+      } catch (err) {
+        setError('프로필 삭제에 실패했습니다.');
+      }
     }
   };
 
@@ -261,7 +266,7 @@ export const Recommend = () => {
     setError(null);
 
     try {
-      const logs = getAllLogs();
+      const logs = await getAllLogs();
 
       if (logs.length === 0) {
         setError('운동 기록이 없습니다. 먼저 운동을 기록해주세요.');

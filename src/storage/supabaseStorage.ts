@@ -1,4 +1,4 @@
-import type { WorkoutLog, Workout } from '../types';
+import type { WorkoutLog, Workout, UserProfile } from '../types';
 import { supabase } from '../lib/supabase';
 
 export const formatDate = (date: Date = new Date()): string => {
@@ -183,4 +183,86 @@ export const generateId = (): string => {
   // Supabase에서 UUID를 자동 생성하므로 이 함수는 더 이상 필요 없지만,
   // 호환성을 위해 유지 (실제로는 사용되지 않음)
   return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+};
+
+// User Profile Management
+export const getUserProfile = async (): Promise<UserProfile | null> => {
+  try {
+    const userId = getCurrentUserId();
+
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!data) return null;
+
+    return {
+      goals: data.goals,
+      rawInput: data.raw_input || undefined,
+      createdAt: new Date(data.created_at).getTime(),
+      updatedAt: new Date(data.updated_at).getTime(),
+    };
+  } catch (error) {
+    console.error('Failed to load profile:', error);
+    return null;
+  }
+};
+
+export const saveUserProfile = async (profile: UserProfile): Promise<void> => {
+  try {
+    const userId = getCurrentUserId();
+
+    // Check if profile already exists
+    const { data: existing } = await supabase
+      .from('user_profiles')
+      .select('id')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (existing) {
+      // Update existing profile
+      const { error } = await supabase
+        .from('user_profiles')
+        .update({
+          goals: profile.goals,
+          raw_input: profile.rawInput || null,
+        })
+        .eq('user_id', userId);
+
+      if (error) throw error;
+    } else {
+      // Insert new profile
+      const { error } = await supabase
+        .from('user_profiles')
+        .insert({
+          user_id: userId,
+          goals: profile.goals,
+          raw_input: profile.rawInput || null,
+        });
+
+      if (error) throw error;
+    }
+  } catch (error) {
+    console.error('Failed to save profile:', error);
+    throw new Error('프로필 저장에 실패했습니다.');
+  }
+};
+
+export const deleteUserProfile = async (): Promise<void> => {
+  try {
+    const userId = getCurrentUserId();
+
+    const { error } = await supabase
+      .from('user_profiles')
+      .delete()
+      .eq('user_id', userId);
+
+    if (error) throw error;
+  } catch (error) {
+    console.error('Failed to delete profile:', error);
+    throw new Error('프로필 삭제에 실패했습니다.');
+  }
 };
