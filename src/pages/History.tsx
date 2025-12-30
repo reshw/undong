@@ -20,6 +20,8 @@ export const History = () => {
   const [textInput, setTextInput] = useState('');
   const [editableText, setEditableText] = useState('');
   const [workouts, setWorkouts] = useState<Workout[]>([]);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [dateMode, setDateMode] = useState<'today' | 'custom'>('today');
 
   const webSpeech = useSpeechRecognition();
   const whisper = useWhisperRecording();
@@ -131,8 +133,12 @@ export const History = () => {
       return;
     }
 
+    // Use selected date (or today if in 'today' mode)
+    const actualDate = dateMode === 'today' ? new Date() : selectedDate;
+    const dateString = formatDate(actualDate);
+
     const log = {
-      date: formatDate(),
+      date: dateString,
       rawText: editableText,
       normalizedText: addMode === 'ai' ? editableText : normalizeText(editableText),
       workouts,
@@ -143,7 +149,15 @@ export const History = () => {
     try {
       await saveLog(log);
       alert('저장되었습니다!');
-      handleCancelAdding();
+
+      // Reset only recording-related states, keep isAdding and selectedDate
+      setRecordingState('idle');
+      setInputMode('voice');
+      setTextInput('');
+      setEditableText('');
+      setWorkouts([]);
+      webSpeech.resetTranscript();
+
       await loadLogs();
     } catch (err) {
       alert('저장에 실패했습니다.');
@@ -163,6 +177,20 @@ export const History = () => {
     setTextInput('');
     setEditableText('');
     setWorkouts([]);
+    setSelectedDate(new Date());
+    setDateMode('today');
+    webSpeech.resetTranscript();
+  };
+
+  const handleCompleteAdding = () => {
+    setIsAdding(false);
+    setRecordingState('idle');
+    setInputMode('voice');
+    setTextInput('');
+    setEditableText('');
+    setWorkouts([]);
+    setSelectedDate(new Date());
+    setDateMode('today');
     webSpeech.resetTranscript();
   };
 
@@ -192,17 +220,52 @@ export const History = () => {
 
   // Adding Mode
   if (isAdding) {
+    const displayDate = dateMode === 'today' ? new Date() : selectedDate;
+    const formattedDisplayDate = `${displayDate.getFullYear()}년 ${displayDate.getMonth() + 1}월 ${displayDate.getDate()}일`;
+
     return (
       <div className="container">
         <div className="header">
           <h1>운동 추가</h1>
-          <button className="cancel-button" onClick={handleCancelAdding}>
-            취소
+          <button className="cancel-button" onClick={handleCompleteAdding}>
+            완료
           </button>
         </div>
 
         {recordingState === 'idle' && (
           <>
+            <div className="date-selector-section">
+              <h3>날짜 선택</h3>
+              <div className="date-mode-buttons">
+                <button
+                  className={`date-mode-button ${dateMode === 'today' ? 'active' : ''}`}
+                  onClick={() => {
+                    setDateMode('today');
+                    setSelectedDate(new Date());
+                  }}
+                >
+                  오늘
+                </button>
+                <button
+                  className={`date-mode-button ${dateMode === 'custom' ? 'active' : ''}`}
+                  onClick={() => setDateMode('custom')}
+                >
+                  다른 날짜
+                </button>
+              </div>
+              {dateMode === 'custom' && (
+                <input
+                  type="date"
+                  className="date-picker"
+                  value={formatDate(selectedDate)}
+                  onChange={(e) => setSelectedDate(new Date(e.target.value))}
+                />
+              )}
+              <div className="selected-date-display">
+                선택된 날짜: <strong>{formattedDisplayDate}</strong>
+              </div>
+            </div>
+
             <div className="input-mode-selector">
               <button
                 className={`input-mode-button ${inputMode === 'voice' ? 'active' : ''}`}
@@ -245,6 +308,21 @@ export const History = () => {
         {inputMode === 'voice' && recordingState === 'idle' && (
           <div className="recording-section">
             <div className="status-text">운동 기록을 말씀해주세요</div>
+            <div className="input-guide">
+              <div className="guide-item">운동이름</div>
+              <div className="guide-separator">/</div>
+              <div className="guide-item">강도 (무게/속도/RPM)</div>
+              <div className="guide-separator">/</div>
+              <div className="guide-item">세트 x 회수 or 분</div>
+              <div className="guide-separator">/</div>
+              <div className="guide-item">난이도 (1~10)</div>
+            </div>
+            <div className="guide-note">
+              ※ 난이도: 1 (매우 쉬움) ~ 10 (매우 어려움)
+            </div>
+            <div className="guide-example">
+              예: "벤치프레스 60kg 3세트 10회 난이도 7"
+            </div>
             <button className="mic-button" onClick={handleMicClick}>
               <svg width="80" height="80" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z" />
@@ -258,11 +336,23 @@ export const History = () => {
         {inputMode === 'text' && recordingState === 'idle' && (
           <div className="text-input-section">
             <div className="status-text">운동 내용을 입력해주세요</div>
+            <div className="input-guide">
+              <div className="guide-item">운동이름</div>
+              <div className="guide-separator">/</div>
+              <div className="guide-item">강도 (무게/속도/RPM)</div>
+              <div className="guide-separator">/</div>
+              <div className="guide-item">세트 x 회수 or 분</div>
+              <div className="guide-separator">/</div>
+              <div className="guide-item">난이도 (1~10)</div>
+            </div>
+            <div className="guide-note">
+              ※ 난이도: 1 (매우 쉬움) ~ 10 (매우 어려움)
+            </div>
             <textarea
               className="text-input-area"
               value={textInput}
               onChange={(e) => setTextInput(e.target.value)}
-              placeholder="예시: 벤치프레스 60kg 3세트 10회, 스쿼트 80kg 4세트 8회"
+              placeholder="예: 벤치프레스 60kg 3세트 10회 난이도 7, 스쿼트 80kg 4세트 8회 난이도 8"
               rows={6}
             />
             <button className="primary-button" onClick={handleTextSubmit}>
@@ -312,6 +402,9 @@ export const History = () => {
         {recordingState === 'review' && (
           <div className="review-section">
             <h2>기록 확인</h2>
+            <div className="selected-date-display">
+              저장될 날짜: <strong>{formattedDisplayDate}</strong>
+            </div>
 
             <div className="section">
               <h3>원문 (편집 가능)</h3>
@@ -353,13 +446,11 @@ export const History = () => {
             </div>
 
             <div className="action-buttons">
-              <button className="cancel-button" onClick={handleCancelAdding}>
-                취소
-              </button>
               <button className="primary-button" onClick={handleSave}>
-                저장
+                저장하고 계속 추가
               </button>
             </div>
+            <div className="hint-text">저장 후 같은 날짜에 운동을 계속 추가할 수 있습니다</div>
           </div>
         )}
       </div>
