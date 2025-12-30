@@ -6,7 +6,7 @@ export type RecordingState =
   | 'review'
   | 'error';
 
-export type WorkoutType = 'strength' | 'cardio' | 'core' | 'mobility' | 'unknown';
+export type WorkoutType = 'strength' | 'cardio' | 'core' | 'mobility' | 'snowboard' | 'unknown';
 
 export interface Workout {
   name: string;

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { WorkoutLog, RecordingState, Workout } from '../types';
-import { getAllLogs, deleteLog, saveLog, generateId, formatDate } from '../storage/logStorage';
+import { getAllLogs, deleteLog, saveLog, formatDate } from '../storage/supabaseStorage';
 import { useSpeechRecognition } from '../features/speech/useSpeechRecognition';
 import { useWhisperRecording } from '../features/speech/useWhisperRecording';
 import { normalizeText } from '../features/normalize/normalizeText';
@@ -28,16 +28,16 @@ export const History = () => {
     loadLogs();
   }, []);
 
-  const loadLogs = () => {
-    const allLogs = getAllLogs();
+  const loadLogs = async () => {
+    const allLogs = await getAllLogs();
     setLogs(allLogs);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('이 기록을 삭제하시겠습니까?')) {
       try {
-        deleteLog(id);
-        loadLogs();
+        await deleteLog(id);
+        await loadLogs();
         if (selectedLog?.id === id) {
           setSelectedLog(null);
         }
@@ -125,14 +125,13 @@ export const History = () => {
     handleParse(editableText, addMode === 'ai');
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!editableText.trim()) {
       alert('저장할 내용이 없습니다.');
       return;
     }
 
     const log = {
-      id: generateId(),
       date: formatDate(),
       rawText: editableText,
       normalizedText: addMode === 'ai' ? editableText : normalizeText(editableText),
@@ -142,10 +141,10 @@ export const History = () => {
     };
 
     try {
-      saveLog(log);
+      await saveLog(log);
       alert('저장되었습니다!');
       handleCancelAdding();
-      loadLogs();
+      await loadLogs();
     } catch (err) {
       alert('저장에 실패했습니다.');
     }
