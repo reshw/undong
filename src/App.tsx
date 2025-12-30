@@ -5,6 +5,7 @@ import { History } from './pages/History';
 import { Dashboard } from './pages/Dashboard';
 import { TodoList } from './pages/TodoList';
 import { Recommend } from './pages/Recommend';
+import { Header } from './components/Header';
 import { BottomNav } from './components/BottomNav';
 import './App.css';
 
@@ -25,6 +26,7 @@ function ProtectedRoutes() {
 
   return (
     <>
+      <Header />
       <Routes>
         <Route path="/" element={<History />} />
         <Route path="/dashboard" element={<Dashboard />} />

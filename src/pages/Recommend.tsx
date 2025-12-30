@@ -10,6 +10,7 @@ export const Recommend = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('ready');
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [userInput, setUserInput] = useState('');
+  const [todayFeeling, setTodayFeeling] = useState('');
   const [isGeneratingProfile, setIsGeneratingProfile] = useState(false);
   const [recommendation, setRecommendation] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
@@ -271,30 +272,36 @@ export const Recommend = () => {
       const recentLogs = logs.slice(0, 7);
       const workoutSummary = analyzeWorkouts(recentLogs);
 
+      const feelingContext = todayFeeling.trim()
+        ? `\n\n**오늘의 컨디션:**\n${todayFeeling}\n`
+        : '';
+
       const systemPrompt = profile
         ? `당신은 전문 피트니스 코치입니다. 사용자의 운동 기록을 분석하고 다음 운동을 추천해주세요.
 
 **사용자 배경:**
-${profile.goals}
+${profile.goals}${feelingContext}
 
-위 배경을 고려하여 추천해주세요.
+위 배경과 오늘의 컨디션을 고려하여 추천해주세요.
 
 추천 형식:
 1. 최근 운동 분석 요약 (어떤 운동을 주로 했는지, 사용자 목표와의 연관성)
-2. 밸런스 평가 (목표 달성을 위해 부족한 부분, 카디오/근력 비율 등)
-3. 오늘 추천 운동 (사용자 목표에 맞는 구체적인 운동명, 세트, 횟수, 무게 포함)
+2. 오늘의 컨디션 고려 (컨디션에 따른 강도 조절, 주의사항)
+3. 밸런스 평가 (목표 달성을 위해 부족한 부분, 카디오/근력 비율 등)
+4. 오늘 추천 운동 (사용자 목표와 컨디션에 맞는 구체적인 운동명, 세트, 횟수, 무게 포함)
    - 각 운동을 명확하게 나열 (예: "스쿼트 80kg 4세트 8회")
-4. 주의사항 (휴식 필요 여부, 부상 위험, 목표 달성 팁 등)
+5. 주의사항 (휴식 필요 여부, 부상 위험, 목표 달성 팁 등)
 
 친근하고 격려하는 톤으로 작성해주세요.`
-        : `당신은 전문 피트니스 코치입니다. 사용자의 운동 기록을 분석하고 다음 운동을 추천해주세요.
+        : `당신은 전문 피트니스 코치입니다. 사용자의 운동 기록을 분석하고 다음 운동을 추천해주세요.${feelingContext}
 
 추천 형식:
 1. 최근 운동 분석 요약 (어떤 운동을 주로 했는지, 강도는 어땠는지)
-2. 밸런스 평가 (어떤 부위가 부족한지, 카디오/근력 비율 등)
-3. 오늘 추천 운동 (구체적인 운동명, 세트, 횟수, 무게 포함)
+2. 오늘의 컨디션 고려 (컨디션에 따른 강도 조절, 주의사항)
+3. 밸런스 평가 (어떤 부위가 부족한지, 카디오/근력 비율 등)
+4. 오늘 추천 운동 (구체적인 운동명, 세트, 횟수, 무게 포함)
    - 각 운동을 명확하게 나열 (예: "벤치프레스 60kg 3세트 10회")
-4. 주의사항 (휴식 필요 여부, 부상 위험 등)
+5. 주의사항 (휴식 필요 여부, 부상 위험 등)
 
 친근하고 격려하는 톤으로 작성해주세요.`;
 
@@ -444,11 +451,25 @@ ${profile.goals}
           </div>
         )}
 
+        <div className="today-feeling-section">
+          <h3>오늘의 기분은 어떠세요?</h3>
+          <textarea
+            className="feeling-input"
+            value={todayFeeling}
+            onChange={(e) => setTodayFeeling(e.target.value)}
+            placeholder="예: 어제 운동 후 다리가 뻐근해요. 컨디션은 좋은데 피곤해요. 오늘은 가볍게 하고 싶어요."
+            rows={4}
+          />
+          <p className="feeling-hint">
+            오늘의 컨디션, 피로도, 통증, 기분 등을 자유롭게 적어주세요. AI가 고려해서 추천해드립니다.
+          </p>
+        </div>
+
         <div className="recommend-cta">
           <svg width="80" height="80" viewBox="0 0 24 24" fill="currentColor" opacity="0.3">
             <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
           </svg>
-          <p>AI가 당신의 운동 기록과 목표를 분석하여</p>
+          <p>AI가 당신의 운동 기록, 목표, 컨디션을 분석하여</p>
           <p>맞춤 운동을 추천해드립니다</p>
           <button className="primary-button large-button" onClick={generateRecommendation}>
             추천 받기
