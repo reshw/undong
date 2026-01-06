@@ -13,6 +13,7 @@ type InputMode = 'voice' | 'text';
 export const History = () => {
   const [logs, setLogs] = useState<WorkoutLog[]>([]);
   const [selectedLog, setSelectedLog] = useState<WorkoutLog | null>(null);
+  const [selectedDateForDetail, setSelectedDateForDetail] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [inputMode, setInputMode] = useState<InputMode>('voice');
   const [addMode, setAddMode] = useState<AddMode>('web-speech');
@@ -195,6 +196,34 @@ export const History = () => {
       grouped[log.date].push(log);
     });
     return grouped;
+  };
+
+  // 날짜별 운동 통계 계산
+  const calculateDayStats = (logs: WorkoutLog[]) => {
+    const allWorkouts = logs.flatMap(log => log.workouts);
+    const totalWorkouts = allWorkouts.length;
+    const totalSets = allWorkouts.reduce((sum, w) => sum + (w.sets || 0), 0);
+    const totalDuration = allWorkouts.reduce((sum, w) => sum + (w.duration_min || 0), 0);
+
+    // 운동 종류별 카운트
+    const workoutTypes = new Map<string, number>();
+    allWorkouts.forEach(w => {
+      workoutTypes.set(w.name, (workoutTypes.get(w.name) || 0) + 1);
+    });
+
+    // 가장 많이 한 운동 3개
+    const topWorkouts = Array.from(workoutTypes.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([name]) => name);
+
+    return {
+      totalWorkouts,
+      totalSets,
+      totalDuration,
+      topWorkouts,
+      uniqueWorkouts: workoutTypes.size,
+    };
   };
 
   const groupedLogs = groupByDate(logs);
@@ -439,7 +468,100 @@ export const History = () => {
     );
   }
 
-  // Detail View
+  // Detail View - 날짜별 상세
+  if (selectedDateForDetail) {
+    const dayLogs = groupedLogs[selectedDateForDetail];
+    const stats = calculateDayStats(dayLogs);
+    const allWorkouts = dayLogs.flatMap(log => log.workouts);
+
+    return (
+      <div className="container">
+        <div className="header">
+          <button className="back-button" onClick={() => setSelectedDateForDetail(null)}>
+            ← 뒤로
+          </button>
+          <h2>운동 기록 상세</h2>
+        </div>
+
+        <div className="detail-section">
+          <div className="detail-date">{formatDateDisplay(selectedDateForDetail)}</div>
+
+          {/* 통계 요약 */}
+          <div className="detail-stats-summary">
+            <div className="detail-stat">
+              <span className="detail-stat-label">총 운동</span>
+              <span className="detail-stat-value">{stats.totalWorkouts}개</span>
+            </div>
+            <div className="detail-stat">
+              <span className="detail-stat-label">종목 수</span>
+              <span className="detail-stat-value">{stats.uniqueWorkouts}개</span>
+            </div>
+            {stats.totalSets > 0 && (
+              <div className="detail-stat">
+                <span className="detail-stat-label">총 세트</span>
+                <span className="detail-stat-value">{stats.totalSets}세트</span>
+              </div>
+            )}
+            {stats.totalDuration > 0 && (
+              <div className="detail-stat">
+                <span className="detail-stat-label">총 시간</span>
+                <span className="detail-stat-value">{stats.totalDuration}분</span>
+              </div>
+            )}
+          </div>
+
+          {/* 모든 운동 표시 */}
+          <div className="section">
+            <h3>운동 기록 ({allWorkouts.length}개)</h3>
+            <div className="workout-cards">
+              {allWorkouts.map((workout, idx) => (
+                <div key={idx} className={`workout-card ${workout.type}`}>
+                  <div className="workout-name">{workout.name}</div>
+                  <div className="workout-details">
+                    {workout.weight_kg && <span className="weight">{workout.weight_kg} kg</span>}
+                    {workout.sets && <span>{workout.sets} 세트</span>}
+                    {workout.reps && <span>{workout.reps} 회</span>}
+                    {workout.duration_min && <span>{workout.duration_min} 분</span>}
+                    {!workout.sets && !workout.reps && !workout.duration_min && !workout.weight_kg && (
+                      <span className="no-details">상세 정보 없음</span>
+                    )}
+                  </div>
+                  {workout.note && <div className="workout-note">{workout.note}</div>}
+                  <div className="workout-type-badge">{workout.type}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 세션별 원문 */}
+          <div className="section">
+            <h3>입력 내용 ({dayLogs.length}개 세션)</h3>
+            {dayLogs.map((log) => (
+              <div key={log.id} className="session-raw-text">
+                <div className="session-header">
+                  <span className="session-time">
+                    {new Date(log.createdAt).toLocaleTimeString('ko-KR', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </span>
+                  <button
+                    className="delete-session-button"
+                    onClick={() => handleDelete(log.id)}
+                  >
+                    삭제
+                  </button>
+                </div>
+                <div className="detail-text">{log.rawText}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Detail View - 개별 로그 (기존 방식 유지)
   if (selectedLog) {
     return (
       <div className="container">
@@ -490,7 +612,7 @@ export const History = () => {
     );
   }
 
-  // Main View - 운동 카드 중심
+  // Main View - 날짜 카드 중심
   return (
     <div className="container">
       <div className="header">
@@ -508,51 +630,56 @@ export const History = () => {
           </button>
         </div>
       ) : (
-        <div className="history-workout-view">
-          {dates.map((date) => (
-            <div key={date} className="history-date-section">
-              <div className="history-date-header">
-                {formatDateDisplay(date)}
-                <span className="session-count">{groupedLogs[date].length}회 기록</span>
-              </div>
+        <div className="history-day-cards">
+          {dates.map((date) => {
+            const dayLogs = groupedLogs[date];
+            const stats = calculateDayStats(dayLogs);
 
-              {groupedLogs[date].map((log) => (
-                <div key={log.id} className="history-session">
-                  <div className="session-time">
-                    {new Date(log.createdAt).toLocaleTimeString('ko-KR', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
+            return (
+              <div
+                key={date}
+                className="day-card-compact"
+                onClick={() => setSelectedDateForDetail(date)}
+              >
+                <div className="day-card-top">
+                  <div className="day-info">
+                    <div className="day-date-short">
+                      {new Date(date).getDate()}
+                    </div>
+                    <div className="day-month-year">
+                      {new Date(date).getMonth() + 1}월
+                    </div>
                   </div>
-                  <div className="session-workouts">
-                    {log.workouts.map((workout, idx) => (
-                      <div key={idx} className={`history-workout-card ${workout.type}`}>
-                        <div className="hw-name">{workout.name}</div>
-                        <div className="hw-details">
-                          {workout.weight_kg && (
-                            <span className="hw-weight">{workout.weight_kg}kg</span>
-                          )}
-                          {workout.sets && workout.reps && (
-                            <span>
-                              {workout.sets}×{workout.reps}
-                            </span>
-                          )}
-                          {!workout.sets && workout.reps && <span>{workout.reps}회</span>}
-                          {workout.duration_min && <span>{workout.duration_min}분</span>}
-                        </div>
-                      </div>
-                    ))}
+                  <div className="day-summary">
+                    <div className="day-title">
+                      {['일', '월', '화', '수', '목', '금', '토'][new Date(date).getDay()]}요일
+                    </div>
+                    <div className="day-stats-inline">
+                      <span className="stat-chip">{stats.totalWorkouts}개 운동</span>
+                      <span className="stat-chip">{stats.uniqueWorkouts}종목</span>
+                      {stats.totalSets > 0 && (
+                        <span className="stat-chip">{stats.totalSets}세트</span>
+                      )}
+                    </div>
                   </div>
-                  <button
-                    className="session-detail-button"
-                    onClick={() => setSelectedLog(log)}
-                  >
-                    상세보기
-                  </button>
+                  <div className="day-arrow">›</div>
                 </div>
-              ))}
-            </div>
-          ))}
+
+                <div className="day-workouts-preview">
+                  {stats.topWorkouts.slice(0, 4).map((workout, idx) => (
+                    <span key={idx} className="workout-chip">
+                      {workout}
+                    </span>
+                  ))}
+                  {stats.uniqueWorkouts > 4 && (
+                    <span className="workout-chip-more">
+                      +{stats.uniqueWorkouts - 4}
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

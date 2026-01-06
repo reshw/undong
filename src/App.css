@@ -31,10 +31,16 @@ body {
 }
 
 .container {
-  max-width: 800px;
+  max-width: 100%;
   margin: 0 auto;
   padding: 20px;
   min-height: 100vh;
+}
+
+@media (min-width: 768px) {
+  .container {
+    max-width: 600px;
+  }
 }
 
 .header {
@@ -2104,19 +2110,215 @@ body {
   height: 22px;
 }
 
+/* Day Cards - Compact Design */
+.history-day-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.day-card-compact {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-left: 4px solid var(--primary-color);
+}
+
+.day-card-compact:hover {
+  box-shadow: 0 4px 12px rgba(0, 122, 204, 0.15);
+  transform: translateX(4px);
+  border-left-color: var(--primary-hover);
+}
+
+.day-card-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.day-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 56px;
+  padding: 8px;
+  background: var(--primary-color);
+  border-radius: 8px;
+}
+
+.day-date-short {
+  font-size: 24px;
+  font-weight: 700;
+  color: white;
+  line-height: 1;
+}
+
+.day-month-year {
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+  margin-top: 2px;
+}
+
+.day-summary {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.day-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.day-stats-inline {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.stat-chip {
+  font-size: 12px;
+  padding: 3px 8px;
+  background: var(--input-bg);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.day-arrow {
+  font-size: 24px;
+  color: var(--text-secondary);
+  font-weight: 300;
+}
+
+.day-workouts-preview {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-color);
+}
+
+.workout-chip {
+  font-size: 12px;
+  padding: 4px 10px;
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.workout-chip-more {
+  font-size: 12px;
+  padding: 4px 10px;
+  background: var(--primary-color);
+  border-radius: 6px;
+  color: white;
+  font-weight: 600;
+}
+
+/* Detail Stats Summary - Compact */
+.detail-stats-summary {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.detail-stat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--input-bg);
+  border-radius: 6px;
+  flex: 1;
+  min-width: 100px;
+}
+
+.detail-stat-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.detail-stat-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--primary-color);
+  margin-left: auto;
+}
+
+/* Session Raw Text */
+.session-raw-text {
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.session-raw-text:last-child {
+  margin-bottom: 0;
+}
+
+.session-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.session-time {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+.delete-session-button {
+  background: none;
+  border: 1px solid var(--danger-color);
+  color: var(--danger-color);
+  padding: 4px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s;
+  font-family: 'Noto Sans KR', sans-serif;
+}
+
+.delete-session-button:hover {
+  background: var(--danger-color);
+  color: white;
+}
+
 /* Mobile Optimization */
 @media (max-width: 640px) {
   .container {
-    padding: 16px;
+    padding: 12px;
     padding-bottom: 90px;
   }
 
   .header {
-    margin-bottom: 24px;
+    margin-bottom: 20px;
   }
 
   .header h1 {
-    font-size: 22px;
+    font-size: 20px;
   }
 
   .header h2 {
@@ -2162,6 +2364,67 @@ body {
   .bottom-nav .nav-item span {
     font-size: 11px;
   }
+
+  /* Compact day cards mobile */
+  .history-day-cards {
+    gap: 10px;
+  }
+
+  .day-card-compact {
+    padding: 12px;
+    border-radius: 10px;
+  }
+
+  .day-info {
+    min-width: 50px;
+    padding: 6px;
+  }
+
+  .day-date-short {
+    font-size: 20px;
+  }
+
+  .day-month-year {
+    font-size: 10px;
+  }
+
+  .day-title {
+    font-size: 14px;
+  }
+
+  .stat-chip {
+    font-size: 11px;
+    padding: 2px 6px;
+  }
+
+  .workout-chip {
+    font-size: 11px;
+    padding: 3px 8px;
+  }
+
+  .workout-chip-more {
+    font-size: 11px;
+    padding: 3px 8px;
+  }
+
+  /* Detail view mobile */
+  .detail-stats-summary {
+    padding: 12px;
+    gap: 6px;
+  }
+
+  .detail-stat {
+    padding: 6px 10px;
+    min-width: 80px;
+  }
+
+  .detail-stat-label {
+    font-size: 12px;
+  }
+
+  .detail-stat-value {
+    font-size: 16px;
+  }
 }
 
 /* Extra small screens */
@@ -2177,5 +2440,239 @@ body {
 
   .bottom-nav .nav-item span {
     font-size: 10px;
+  }
+}
+
+/* Chat UI */
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 200px);
+  max-height: 600px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.chat-message {
+  display: flex;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.chat-message.user {
+  justify-content: flex-end;
+}
+
+.chat-message.assistant {
+  justify-content: flex-start;
+}
+
+.message-content {
+  max-width: 80%;
+  padding: 12px 16px;
+  border-radius: 12px;
+  line-height: 1.6;
+}
+
+.chat-message.user .message-content {
+  background: var(--primary-color);
+  color: white;
+  border-bottom-right-radius: 4px;
+}
+
+.chat-message.assistant .message-content {
+  background: var(--input-bg);
+  color: var(--text-primary);
+  border-bottom-left-radius: 4px;
+}
+
+.message-content p {
+  margin: 0;
+  margin-bottom: 8px;
+}
+
+.message-content p:last-child {
+  margin-bottom: 0;
+}
+
+.typing-indicator {
+  display: flex;
+  gap: 6px;
+  padding: 8px 0;
+}
+
+.typing-indicator span {
+  width: 8px;
+  height: 8px;
+  background: var(--text-secondary);
+  border-radius: 50%;
+  animation: typing 1.4s infinite;
+}
+
+.typing-indicator span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-indicator span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typing {
+  0%, 60%, 100% {
+    opacity: 0.3;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-8px);
+  }
+}
+
+.chat-input-container {
+  border-top: 1px solid var(--border-color);
+  padding: 16px;
+  background: var(--card-bg);
+}
+
+.chat-input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 15px;
+  font-family: 'Noto Sans KR', sans-serif;
+  resize: none;
+  background: var(--input-bg);
+  color: var(--text-primary);
+  margin-bottom: 12px;
+}
+
+.chat-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.chat-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.chat-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.chat-send-button {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s;
+  font-family: 'Noto Sans KR', sans-serif;
+}
+
+.chat-send-button:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+
+.chat-send-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.chat-finalize-button {
+  flex: 1;
+  background: var(--success-color);
+  color: white;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s;
+  font-family: 'Noto Sans KR', sans-serif;
+}
+
+.chat-finalize-button:hover:not(:disabled) {
+  background: #6dbf6a;
+}
+
+.chat-finalize-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.chat-generating {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 20px;
+  border-top: 1px solid var(--border-color);
+}
+
+.chat-generating p {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+/* Mobile Chat */
+@media (max-width: 640px) {
+  .chat-container {
+    height: calc(100vh - 180px);
+  }
+
+  .chat-messages {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .message-content {
+    max-width: 85%;
+    padding: 10px 14px;
+    font-size: 14px;
+  }
+
+  .chat-input-container {
+    padding: 12px;
+  }
+
+  .chat-input {
+    font-size: 14px;
+  }
+
+  .chat-buttons {
+    flex-direction: column;
+  }
+
+  .chat-send-button,
+  .chat-finalize-button {
+    width: 100%;
   }
 }

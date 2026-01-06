@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
+import { transcribeAudio as geminiTranscribeAudio } from '../../utils/gemini';
 
 interface WhisperRecordingResult {
   isRecording: boolean;
@@ -62,53 +63,22 @@ export const useWhisperRecording = (): WhisperRecordingResult => {
   }, [isRecording]);
 
   const transcribeAudio = async (audioBlob: Blob) => {
-    const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-
-    console.log('[Whisper] API Key exists:', !!apiKey);
-    console.log('[Whisper] API Key prefix:', apiKey?.substring(0, 10));
-    console.log('[Whisper] Audio blob size:', audioBlob.size);
-
-    if (!apiKey) {
-      console.error('[Whisper] No API key found');
-      setError('OpenAI API 키가 설정되지 않았습니다. .env 파일을 확인해주세요.');
-      return;
-    }
+    console.log('[Gemini] Audio blob size:', audioBlob.size);
 
     try {
-      const formData = new FormData();
-      formData.append('file', audioBlob, 'audio.webm');
-      formData.append('model', 'whisper-1');
-      formData.append('language', 'ko');
+      console.log('[Gemini] Sending audio transcription request...');
 
-      console.log('[Whisper] Sending request to OpenAI...');
-
-      const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: formData,
-      });
-
-      console.log('[Whisper] Response status:', response.status);
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('[Whisper] API Error:', errorData);
-        throw new Error(`Whisper API error: ${response.status} - ${JSON.stringify(errorData)}`);
-      }
-
-      const data = await response.json();
-      console.log('[Whisper] Transcription result:', data.text);
-      setTranscript(data.text);
+      const text = await geminiTranscribeAudio(audioBlob);
+      console.log('[Gemini] Transcription result:', text);
+      setTranscript(text);
 
       // Promise resolve
       if (resolveTranscriptionRef.current) {
-        resolveTranscriptionRef.current(data.text);
+        resolveTranscriptionRef.current(text);
         resolveTranscriptionRef.current = null;
       }
     } catch (err) {
-      console.error('[Whisper] Transcription error:', err);
+      console.error('[Gemini] Transcription error:', err);
       setError(`음성 인식 실패: ${err instanceof Error ? err.message : '알 수 없는 오류'}`);
 
       // Promise resolve with error

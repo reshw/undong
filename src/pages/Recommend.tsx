@@ -3,116 +3,226 @@ import { useNavigate } from 'react-router-dom';
 import { getAllLogs, getUserProfile, saveUserProfile, deleteUserProfile } from '../storage/supabaseStorage';
 import { saveTodo, getTodayTodo, generateId, formatDate } from '../storage/logStorage';
 import type { WorkoutLog, UserProfile, DailyTodo, TodoWorkout } from '../types';
+import { generateTextWithAI, getAvailableProviders, getDefaultProvider } from '../utils/ai';
 
-type ViewMode = 'setup' | 'ready' | 'loading' | 'result';
+type ViewMode = 'profile-chat' | 'ready' | 'loading' | 'recommendation-chat' | 'finalized';
+
+interface ChatMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp: number;
+}
 
 export const Recommend = () => {
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<ViewMode>('ready');
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [userInput, setUserInput] = useState('');
   const [todayFeeling, setTodayFeeling] = useState('');
   const [isGeneratingProfile, setIsGeneratingProfile] = useState(false);
-  const [recommendation, setRecommendation] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
+  const [aiInfo, setAiInfo] = useState<string>('');
+
+  // 대화형 프로필 설정
+  const [profileChatMessages, setProfileChatMessages] = useState<ChatMessage[]>([]);
+  const [profileChatInput, setProfileChatInput] = useState('');
+  const [isProfileChatProcessing, setIsProfileChatProcessing] = useState(false);
+
+  // 대화형 추천
+  const [recommendationChatMessages, setRecommendationChatMessages] = useState<ChatMessage[]>([]);
+  const [recommendationChatInput, setRecommendationChatInput] = useState('');
+  const [isRecommendationChatProcessing, setIsRecommendationChatProcessing] = useState(false);
+  const [currentAnalysis, setCurrentAnalysis] = useState<string>('');
+  const [currentRecommendation, setCurrentRecommendation] = useState<string>('');
 
   useEffect(() => {
     loadProfile();
+
+    // AI 제공자 정보 표시
+    const providers = getAvailableProviders();
+    const defaultProvider = getDefaultProvider();
+    const providerNames = {
+      gemini: 'Gemini',
+      openai: 'OpenAI GPT',
+    };
+
+    if (providers.length > 0) {
+      const providerList = providers.map(p => providerNames[p]).join(', ');
+      setAiInfo(`사용 가능한 AI: ${providerList} (추천: ${providerNames[defaultProvider]})`);
+    } else {
+      setAiInfo('AI 설정 필요');
+    }
   }, []);
 
   const loadProfile = async () => {
     const savedProfile = await getUserProfile();
     setProfile(savedProfile);
     if (!savedProfile) {
-      setViewMode('setup');
+      setViewMode('profile-chat');
+      // 첫 메시지: AI가 대화 시작
+      startProfileChat();
     } else {
       setViewMode('ready');
     }
   };
 
-  const handleGenerateProfile = async () => {
-    const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+  const startProfileChat = async () => {
+    const welcomeMessage: ChatMessage = {
+      role: 'assistant',
+      content: '안녕하세요! 맞춤 운동 추천을 위해 몇 가지 질문을 드릴게요. 편하게 답변해주시면 됩니다.\n\n먼저, 운동 경험이 얼마나 되셨나요? (예: 처음이에요, 6개월 정도요, 2년 넘었어요 등)',
+      timestamp: Date.now(),
+    };
+    setProfileChatMessages([welcomeMessage]);
+  };
 
-    if (!apiKey) {
-      setError('OpenAI API 키가 설정되지 않았습니다.');
-      return;
-    }
+  const handleProfileChatSubmit = async () => {
+    if (!profileChatInput.trim()) return;
 
-    if (!userInput.trim()) {
-      setError('운동 목표를 입력해주세요.');
-      return;
-    }
+    // 사용자 메시지 추가
+    const userMessage: ChatMessage = {
+      role: 'user',
+      content: profileChatInput,
+      timestamp: Date.now(),
+    };
 
-    setIsGeneratingProfile(true);
-    setError(null);
+    const newMessages = [...profileChatMessages, userMessage];
+    setProfileChatMessages(newMessages);
+    setProfileChatInput('');
+    setIsProfileChatProcessing(true);
 
     try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages: [
-            {
-              role: 'system',
-              content: `당신은 사용자의 운동 목표와 배경을 전문적으로 정리하는 피트니스 전문가입니다.
+      // AI에게 대화 이력과 함께 다음 질문 요청
+      const conversationContext = newMessages
+        .map((m) => `${m.role === 'user' ? '사용자' : 'AI'}: ${m.content}`)
+        .join('\n');
 
-사용자가 자유롭게 입력한 운동 관련 정보를 받아서, 다음 항목들을 명확하게 정리해주세요:
+      const systemPrompt = `당신은 친절한 피트니스 코치입니다. 사용자와 대화하며 다음 정보를 자연스럽게 수집하세요:
 
-1. 주요 스포츠/활동 (예: 스노보드, 러닝, 등산 등)
-2. 운동 목표 (예: 피지컬 향상, 입문, 체력 유지 등)
-3. 운동 스케줄/패턴 (예: 주말마다, 평일 저녁, 비시즌에만 등)
-4. 특이사항이나 제약사항
+1. 나이, 성별, 키, 체중
+2. 운동 경험 (얼마나 했는지)
+3. 운동 목표 (근육, 체력, 다이어트, 스포츠 등)
+4. 선호/회피 운동
+5. 부상 이력
+6. 사용 가능 장비 (집, 헬스장 등)
+7. 가용 시간 (주 몇 회, 회당 몇 분)
+8. 생활 패턴 (활동량, 수면)
 
-출력 형식은 간결하고 명확하게, 3-5문장으로 정리해주세요. 이 내용은 AI 운동 추천 시스템에 배경 정보로 제공됩니다.`,
-            },
-            {
-              role: 'user',
-              content: userInput,
-            },
-          ],
-          temperature: 0.7,
-          max_tokens: 500,
-        }),
-      });
+**대화 규칙:**
+- 한 번에 1-2가지만 물어보세요
+- 사용자가 답한 내용을 요약해주세요
+- 아직 모르는 정보가 있으면 자연스럽게 다음 질문을 하세요
+- 충분한 정보를 얻었다면 "좋습니다! 이제 프로필을 생성하겠습니다." 라고 말하고 [COMPLETE] 태그를 붙여주세요
 
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
+**출력 형식:**
+- 일반 질문: 그냥 질문 내용
+- 완료: "좋습니다! 이제 프로필을 생성하겠습니다. [COMPLETE]"`;
+
+      const aiResponse = await generateTextWithAI(
+        systemPrompt,
+        conversationContext,
+        { temperature: 0.7, maxTokens: 300 }
+      );
+
+      const assistantMessage: ChatMessage = {
+        role: 'assistant',
+        content: aiResponse,
+        timestamp: Date.now(),
+      };
+
+      setProfileChatMessages([...newMessages, assistantMessage]);
+
+      // [COMPLETE] 태그가 있으면 프로필 생성
+      if (aiResponse.includes('[COMPLETE]')) {
+        await generateProfileFromChat(newMessages);
+      }
+    } catch (error) {
+      console.error('[Profile Chat] Error:', error);
+      setError('대화 처리 중 오류가 발생했습니다.');
+    } finally {
+      setIsProfileChatProcessing(false);
+    }
+  };
+
+  const generateProfileFromChat = async (messages: ChatMessage[]) => {
+    setIsGeneratingProfile(true);
+
+    try {
+      const conversationText = messages
+        .filter((m) => m.role !== 'system')
+        .map((m) => `${m.role === 'user' ? '사용자' : 'AI'}: ${m.content}`)
+        .join('\n');
+
+      const systemPrompt = `당신은 데이터 분석 전문가입니다. 대화 내용을 분석하여 사용자 프로필을 JSON 형식으로 생성해주세요.
+
+**필요한 정보:**
+{
+  "age": 숫자 또는 null,
+  "gender": "male" | "female" | "other" | null,
+  "height": 숫자(cm) 또는 null,
+  "weight": 숫자(kg) 또는 null,
+  "experienceLevel": "beginner" | "intermediate" | "advanced" | null,
+  "experienceMonths": 숫자 또는 null,
+  "goals": "목표 요약 문장",
+  "primaryGoal": "muscle_gain" | "strength" | "endurance" | "weight_loss" | "sport_performance" | "general_fitness" | null,
+  "preferredWorkouts": ["운동1", "운동2"] 또는 [],
+  "avoidedWorkouts": ["운동1"] 또는 [],
+  "injuries": ["부상1"] 또는 [],
+  "availableEquipment": "home" | "gym" | "bodyweight" | "mixed" | null,
+  "availableTime": {"sessionsPerWeek": 숫자, "minutesPerSession": 숫자} 또는 null,
+  "activityLevel": "sedentary" | "moderate" | "active" | "very_active" | null,
+  "sleepHours": 숫자 또는 null,
+  "stressLevel": "low" | "medium" | "high" | null,
+  "preferredIntensity": {
+    "weight": "conservative" | "moderate" | "progressive",
+    "volume": "low" | "medium" | "high"
+  } 또는 null
+}
+
+대화에서 언급되지 않은 항목은 null로 설정하세요. goals는 반드시 포함해주세요.
+JSON만 출력하고 다른 설명은 하지 마세요.`;
+
+      const profileJson = await generateTextWithAI(
+        systemPrompt,
+        conversationText,
+        { temperature: 0.3, maxTokens: 800 }
+      );
+
+      // JSON 파싱
+      const jsonMatch = profileJson.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error('프로필 JSON 파싱 실패');
       }
 
-      const data = await response.json();
-      const generatedGoals = data.choices[0]?.message?.content;
+      const parsedProfile = JSON.parse(jsonMatch[0]);
 
-      if (generatedGoals) {
-        const newProfile: UserProfile = {
-          goals: generatedGoals,
-          rawInput: userInput,
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        };
-        await saveUserProfile(newProfile);
-        setProfile(newProfile);
-        setViewMode('ready');
-        setUserInput('');
-      } else {
-        throw new Error('프로필 생성 결과를 받지 못했습니다.');
-      }
-    } catch (err) {
-      console.error('Profile generation error:', err);
-      setError(`프로필 생성 실패: ${err instanceof Error ? err.message : '알 수 없는 오류'}`);
+      const newProfile: UserProfile = {
+        ...parsedProfile,
+        conversationHistory: messages
+          .filter((m) => m.role !== 'system')
+          .map((m) => ({
+            question: m.role === 'assistant' ? m.content : '',
+            answer: m.role === 'user' ? m.content : '',
+            timestamp: m.timestamp,
+          })),
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+
+      await saveUserProfile(newProfile);
+      setProfile(newProfile);
+      setViewMode('ready');
+      setProfileChatMessages([]);
+    } catch (error) {
+      console.error('[Generate Profile] Error:', error);
+      setError('프로필 생성 중 오류가 발생했습니다.');
     } finally {
       setIsGeneratingProfile(false);
     }
   };
 
+
   const handleEditProfile = () => {
-    if (profile?.rawInput) {
-      setUserInput(profile.rawInput);
-    }
-    setViewMode('setup');
+    setViewMode('profile-chat');
+    startProfileChat();
   };
 
   const handleDeleteProfile = async () => {
@@ -120,8 +230,8 @@ export const Recommend = () => {
       try {
         await deleteUserProfile();
         setProfile(null);
-        setUserInput('');
-        setViewMode('setup');
+        setViewMode('profile-chat');
+        startProfileChat();
       } catch (err) {
         setError('프로필 삭제에 실패했습니다.');
       }
@@ -162,106 +272,8 @@ export const Recommend = () => {
     return workouts;
   };
 
-  const handleSaveAsTodo = async () => {
-    const existingTodo = getTodayTodo();
-
-    if (existingTodo) {
-      if (!confirm('오늘의 Todo가 이미 존재합니다. 덮어쓰시겠습니까?')) {
-        return;
-      }
-    }
-
-    // AI 추천 텍스트에서 운동 파싱
-    const parsedWorkouts = parseRecommendationToWorkouts(recommendation);
-
-    if (parsedWorkouts.length === 0) {
-      // 파싱 실패 시 GPT에게 구조화된 운동 목록 요청
-      const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-      if (!apiKey) {
-        setError('운동 목록을 추출할 수 없습니다.');
-        return;
-      }
-
-      try {
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${apiKey}`,
-          },
-          body: JSON.stringify({
-            model: 'gpt-4o-mini',
-            messages: [
-              {
-                role: 'system',
-                content: `다음 운동 추천 텍스트에서 구체적인 운동 목록만 추출해주세요.
-각 줄마다 하나의 운동을 다음 형식으로 작성:
-운동명 무게kg 세트수세트 횟수회
-
-예:
-스쿼트 80kg 4세트 8회
-벤치프레스 60kg 3세트 10회
-러닝 20분`,
-              },
-              {
-                role: 'user',
-                content: recommendation,
-              },
-            ],
-            temperature: 0.3,
-            max_tokens: 500,
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error('운동 목록 추출 실패');
-        }
-
-        const data = await response.json();
-        const structuredWorkouts = data.choices[0]?.message?.content || '';
-        const extractedWorkouts = parseRecommendationToWorkouts(structuredWorkouts);
-
-        if (extractedWorkouts.length > 0) {
-          saveTodoWithWorkouts(extractedWorkouts);
-        } else {
-          setError('운동 목록을 추출할 수 없습니다. 추천 내용을 확인해주세요.');
-        }
-      } catch (err) {
-        console.error('Extract workouts error:', err);
-        setError('운동 목록 추출 중 오류가 발생했습니다.');
-      }
-    } else {
-      saveTodoWithWorkouts(parsedWorkouts);
-    }
-  };
-
-  const saveTodoWithWorkouts = (workouts: TodoWorkout[]) => {
-    const todo: DailyTodo = {
-      id: generateId(),
-      date: formatDate(),
-      source: 'ai_recommendation',
-      aiRecommendation: recommendation,
-      workouts,
-      createdAt: Date.now(),
-    };
-
-    try {
-      saveTodo(todo);
-      alert('오늘의 Todo로 저장되었습니다!');
-      navigate('/todo');
-    } catch (err) {
-      setError('Todo 저장에 실패했습니다.');
-    }
-  };
 
   const generateRecommendation = async () => {
-    const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-
-    if (!apiKey) {
-      setError('OpenAI API 키가 설정되지 않았습니다.');
-      return;
-    }
-
     setViewMode('loading');
     setError(null);
 
@@ -274,75 +286,118 @@ export const Recommend = () => {
         return;
       }
 
-      const recentLogs = logs.slice(0, 7);
+      const recentLogs = logs.slice(0, 10); // 최근 10일로 확대
       const workoutSummary = analyzeWorkouts(recentLogs);
 
+      // === STEP 1: 데이터 분석 AI ===
+      const analysisPrompt = `당신은 데이터 분석 전문가입니다. 사용자의 운동 기록을 분석하고 핵심 인사이트를 추출해주세요.
+
+**분석 목적:**
+- 운동 패턴과 트렌드 파악
+- 강점과 약점 식별
+- 발전도 평가
+- 밸런스 분석
+
+**출력 형식 (JSON 형태로 구조화):**
+{
+  "patterns": "주요 운동 패턴 (예: 주 3-4회 운동, 하체 위주)",
+  "strengths": "강점 (예: 스쿼트 무게 꾸준히 증가, 규칙적인 운동)",
+  "weaknesses": "약점 또는 부족한 부분 (예: 상체 운동 부족, 유산소 운동 없음)",
+  "trends": "발전 트렌드 (예: 지난주 대비 무게 증가, 운동 빈도 증가)",
+  "balance": "운동 밸런스 평가 (예: 근력 70% / 유산소 30%)",
+  "risk": "주의사항 (예: 같은 부위 연속, 휴식 부족)"
+}
+
+간결하게 작성하고, 데이터에 기반한 객관적인 분석을 제공하세요.`;
+
+      console.log('[STEP 1] 데이터 분석 중...');
+      const analysisResult = await generateTextWithAI(
+        analysisPrompt,
+        workoutSummary,
+        { temperature: 0.3, maxTokens: 800, provider: 'gemini' } // 분석은 Gemini 사용
+      );
+
+      console.log('[STEP 1] 분석 완료:', analysisResult);
+
+      // === STEP 2: 추천 생성 AI ===
       const feelingContext = todayFeeling.trim()
         ? `\n\n**오늘의 컨디션:**\n${todayFeeling}\n`
         : '';
 
-      const systemPrompt = profile
-        ? `당신은 전문 피트니스 코치입니다. 사용자의 운동 기록을 분석하고 다음 운동을 추천해주세요.
+      const recommendPrompt = profile
+        ? `당신은 친절한 피트니스 코치입니다. 사용자의 운동 목표와 데이터 분석 결과를 바탕으로 오늘의 운동을 추천해주세요.
 
-**사용자 배경:**
+**사용자 운동 목표:**
 ${profile.goals}${feelingContext}
 
-위 배경과 오늘의 컨디션을 고려하여 추천해주세요.
+**데이터 분석 결과:**
+${analysisResult}
 
-추천 형식:
-1. 최근 운동 분석 요약 (어떤 운동을 주로 했는지, 사용자 목표와의 연관성)
-2. 오늘의 컨디션 고려 (컨디션에 따른 강도 조절, 주의사항)
-3. 밸런스 평가 (목표 달성을 위해 부족한 부분, 카디오/근력 비율 등)
-4. 오늘 추천 운동 (사용자 목표와 컨디션에 맞는 구체적인 운동명, 세트, 횟수, 무게 포함)
-   - 각 운동을 명확하게 나열 (예: "스쿼트 80kg 4세트 8회")
-5. 주의사항 (휴식 필요 여부, 부상 위험, 목표 달성 팁 등)
+**추천 작성 가이드:**
+1. 분석 요약 (2-3문장): 최근 운동을 칭찬하고, 강점과 개선점을 언급
+2. 오늘의 추천 이유: 왜 이 운동들을 추천하는지 (목표, 컨디션, 밸런스 고려)
+3. 구체적인 운동 리스트:
+   - 운동명 무게kg 세트수세트 횟수회 형식으로
+   - 각 운동에 대한 간단한 팁 (한 줄)
+4. 마무리 격려 (1-2문장)
 
-친근하고 격려하는 톤으로 작성해주세요.`
-        : `당신은 전문 피트니스 코치입니다. 사용자의 운동 기록을 분석하고 다음 운동을 추천해주세요.${feelingContext}
+**주의사항:**
+- 사용자 목표를 최우선으로 고려
+- 오늘 컨디션에 맞춰 강도 조절
+- 발전 가능하지만 무리하지 않는 수준
+- 친근하고 격려하는 톤
 
-추천 형식:
-1. 최근 운동 분석 요약 (어떤 운동을 주로 했는지, 강도는 어땠는지)
-2. 오늘의 컨디션 고려 (컨디션에 따른 강도 조절, 주의사항)
-3. 밸런스 평가 (어떤 부위가 부족한지, 카디오/근력 비율 등)
-4. 오늘 추천 운동 (구체적인 운동명, 세트, 횟수, 무게 포함)
-   - 각 운동을 명확하게 나열 (예: "벤치프레스 60kg 3세트 10회")
-5. 주의사항 (휴식 필요 여부, 부상 위험 등)
+운동 리스트는 반드시 명확한 형식으로 작성해주세요.`
+        : `당신은 친절한 피트니스 코치입니다. 데이터 분석 결과를 바탕으로 오늘의 운동을 추천해주세요.${feelingContext}
 
-친근하고 격려하는 톤으로 작성해주세요.`;
+**데이터 분석 결과:**
+${analysisResult}
 
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages: [
-            {
-              role: 'system',
-              content: systemPrompt,
-            },
-            {
-              role: 'user',
-              content: `최근 7일 운동 기록:\n\n${workoutSummary}\n\n이 기록을 바탕으로 오늘 할 운동을 추천해주세요.`,
-            },
-          ],
-          temperature: 0.7,
-          max_tokens: 1500,
-        }),
-      });
+**추천 작성 가이드:**
+1. 분석 요약 (2-3문장): 최근 운동을 칭찬하고, 강점과 개선점을 언급
+2. 오늘의 추천 이유: 왜 이 운동들을 추천하는지 (컨디션, 밸런스 고려)
+3. 구체적인 운동 리스트:
+   - 운동명 무게kg 세트수세트 횟수회 형식으로
+   - 각 운동에 대한 간단한 팁 (한 줄)
+4. 마무리 격려 (1-2문장)
 
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
+**주의사항:**
+- 오늘 컨디션에 맞춰 강도 조절
+- 발전 가능하지만 무리하지 않는 수준
+- 친근하고 격려하는 톤
 
-      const data = await response.json();
-      const recommendationText = data.choices[0]?.message?.content;
+운동 리스트는 반드시 명확한 형식으로 작성해주세요.`;
+
+      console.log('[STEP 2] 추천 생성 중...');
+      const aiProvider = getDefaultProvider();
+      console.log(`[STEP 2] 사용 AI: ${aiProvider}`);
+
+      const recommendationText = await generateTextWithAI(
+        recommendPrompt,
+        `위 정보를 바탕으로 오늘의 운동을 추천해주세요.`,
+        {
+          temperature: 0.8,
+          maxTokens: 1500,
+          provider: aiProvider
+        }
+      );
+
+      console.log('[STEP 2] 추천 완료');
 
       if (recommendationText) {
-        setRecommendation(recommendationText);
-        setViewMode('result');
+        // 분석과 추천 결과 저장
+        setCurrentAnalysis(analysisResult);
+        setCurrentRecommendation(recommendationText);
+
+        // 대화형 추천 모드로 전환
+        const initialMessage: ChatMessage = {
+          role: 'assistant',
+          content: recommendationText + '\n\n어떠신가요? 조정이 필요한 부분이 있으면 말씀해주세요!\n(예: "스쿼트 무게 너무 높아요", "상체 운동 더 추가해주세요", "시간이 30분밖에 없어요")',
+          timestamp: Date.now(),
+        };
+
+        setRecommendationChatMessages([initialMessage]);
+        setViewMode('recommendation-chat');
       } else {
         throw new Error('추천 결과를 받지 못했습니다.');
       }
@@ -353,79 +408,340 @@ ${profile.goals}${feelingContext}
     }
   };
 
-  const analyzeWorkouts = (logs: WorkoutLog[]): string => {
-    let summary = '';
+  const handleRecommendationChatSubmit = async () => {
+    if (!recommendationChatInput.trim()) return;
 
-    logs.forEach((log, index) => {
+    const userMessage: ChatMessage = {
+      role: 'user',
+      content: recommendationChatInput,
+      timestamp: Date.now(),
+    };
+
+    const newMessages = [...recommendationChatMessages, userMessage];
+    setRecommendationChatMessages(newMessages);
+    setRecommendationChatInput('');
+    setIsRecommendationChatProcessing(true);
+
+    try {
+      // 대화 맥락 구성
+      const conversationContext = newMessages
+        .map((m) => `${m.role === 'user' ? '사용자' : 'AI'}: ${m.content}`)
+        .join('\n');
+
+      const systemPrompt = `당신은 친절한 피트니스 코치입니다. 사용자의 피드백에 따라 운동 추천을 조정해주세요.
+
+**원래 분석 결과:**
+${currentAnalysis}
+
+**원래 추천:**
+${currentRecommendation}
+
+**사용자 프로필:**
+${profile?.goals || '정보 없음'}
+
+**대화 규칙:**
+- 사용자 피드백을 반영하여 운동을 조정하세요
+- "이 운동 대신 저 운동" → 대체 운동 제안
+- "무게 너무 높아요" → 무게 10-20% 낮춤
+- "시간 부족" → 운동 개수 줄임
+- "더 빡세게" → 강도 높임
+- 조정된 내용만 보여주세요 (전체 추천 다시 작성 X)
+- 사용자가 "좋아요", "확정", "이대로 할게요" 같은 말을 하면 "좋습니다! 이제 Todo로 저장하시겠어요? [FINALIZE]" 라고 응답하세요`;
+
+      const aiResponse = await generateTextWithAI(
+        systemPrompt,
+        conversationContext,
+        { temperature: 0.7, maxTokens: 500 }
+      );
+
+      const assistantMessage: ChatMessage = {
+        role: 'assistant',
+        content: aiResponse,
+        timestamp: Date.now(),
+      };
+
+      setRecommendationChatMessages([...newMessages, assistantMessage]);
+
+      // 추천 업데이트
+      if (!aiResponse.includes('[FINALIZE]')) {
+        // 조정된 내용을 현재 추천에 반영
+        setCurrentRecommendation(currentRecommendation + '\n\n--- 조정 내용 ---\n' + aiResponse);
+      }
+    } catch (error) {
+      console.error('[Recommendation Chat] Error:', error);
+      setError('대화 처리 중 오류가 발생했습니다.');
+    } finally {
+      setIsRecommendationChatProcessing(false);
+    }
+  };
+
+  const handleFinalizeRecommendation = async () => {
+    const existingTodo = getTodayTodo();
+
+    if (existingTodo) {
+      if (!confirm('오늘의 Todo가 이미 존재합니다. 덮어쓰시겠습니까?')) {
+        return;
+      }
+    }
+
+    try {
+      // 최종 추천에서 운동 파싱
+      const parsedWorkouts = parseRecommendationToWorkouts(currentRecommendation);
+
+      if (parsedWorkouts.length === 0) {
+        // 파싱 실패 시 AI에게 재요청
+        const systemPrompt = `다음 운동 추천 텍스트에서 구체적인 운동 목록만 추출해주세요.
+각 줄마다 하나의 운동을 다음 형식으로 작성:
+운동명 무게kg 세트수세트 횟수회
+
+예:
+스쿼트 80kg 4세트 8회
+벤치프레스 60kg 3세트 10회
+러닝 20분`;
+
+        const structuredWorkouts = await generateTextWithAI(systemPrompt, currentRecommendation, {
+          temperature: 0.3,
+          maxTokens: 500,
+        });
+
+        const extractedWorkouts = parseRecommendationToWorkouts(structuredWorkouts);
+
+        if (extractedWorkouts.length === 0) {
+          setError('운동 목록을 추출할 수 없습니다. 추천 내용을 확인해주세요.');
+          return;
+        }
+
+        saveTodoWithRecommendation(extractedWorkouts);
+      } else {
+        saveTodoWithRecommendation(parsedWorkouts);
+      }
+    } catch (err) {
+      console.error('Finalize error:', err);
+      setError('Todo 저장 중 오류가 발생했습니다.');
+    }
+  };
+
+  const saveTodoWithRecommendation = (workouts: TodoWorkout[]) => {
+    const todo: DailyTodo = {
+      id: generateId(),
+      date: formatDate(),
+      source: 'ai_recommendation',
+      aiRecommendation: {
+        analysisResult: currentAnalysis,
+        initialRecommendation: recommendationChatMessages[0]?.content || '',
+        conversationHistory: recommendationChatMessages
+          .filter((m) => m.role === 'user' || m.role === 'assistant')
+          .map((m) => ({
+            role: m.role as 'user' | 'assistant',
+            content: m.content,
+            timestamp: m.timestamp,
+          })),
+        finalRecommendation: currentRecommendation,
+        userFeedback: recommendationChatMessages
+          .filter((m) => m.role === 'user')
+          .map((m) => m.content)
+          .join('; '),
+        finalizedAt: Date.now(),
+      },
+      workouts,
+      createdAt: Date.now(),
+    };
+
+    try {
+      saveTodo(todo);
+      alert('오늘의 Todo로 저장되었습니다!');
+
+      // 상태 초기화
+      setRecommendationChatMessages([]);
+      setCurrentAnalysis('');
+      setCurrentRecommendation('');
+      setViewMode('ready');
+
+      navigate('/todo');
+    } catch (err) {
+      setError('Todo 저장에 실패했습니다.');
+    }
+  };
+
+  const analyzeWorkouts = (logs: WorkoutLog[]): string => {
+    // 1. 기본 통계
+    const totalWorkouts = logs.reduce((sum, log) => sum + log.workouts.length, 0);
+    const totalDays = logs.length;
+
+    // 2. 운동별 통계
+    const workoutStats = new Map<string, {
+      count: number;
+      totalSets: number;
+      totalReps: number;
+      weights: number[];
+      durations: number[];
+      lastDate: string;
+    }>();
+
+    logs.forEach((log) => {
+      log.workouts.forEach((workout) => {
+        const existing = workoutStats.get(workout.name) || {
+          count: 0,
+          totalSets: 0,
+          totalReps: 0,
+          weights: [],
+          durations: [],
+          lastDate: log.date,
+        };
+
+        existing.count++;
+        if (workout.sets) existing.totalSets += workout.sets;
+        if (workout.reps) existing.totalReps += workout.reps;
+        if (workout.weight_kg) existing.weights.push(workout.weight_kg);
+        if (workout.duration_min) existing.durations.push(workout.duration_min);
+        existing.lastDate = log.date;
+
+        workoutStats.set(workout.name, existing);
+      });
+    });
+
+    // 3. 운동 타입별 분석
+    const typeCount = new Map<string, number>();
+    logs.forEach((log) => {
+      log.workouts.forEach((workout) => {
+        typeCount.set(workout.type, (typeCount.get(workout.type) || 0) + 1);
+      });
+    });
+
+    // 4. 구조화된 요약 생성
+    let summary = `=== 운동 기록 분석 (최근 ${totalDays}일) ===\n\n`;
+
+    summary += `📊 전체 통계:\n`;
+    summary += `- 총 운동 세션: ${totalDays}일\n`;
+    summary += `- 총 운동 개수: ${totalWorkouts}개\n`;
+    summary += `- 일평균 운동: ${(totalWorkouts / totalDays).toFixed(1)}개\n\n`;
+
+    summary += `💪 주요 운동 (빈도순):\n`;
+    const sortedWorkouts = Array.from(workoutStats.entries())
+      .sort((a, b) => b[1].count - a[1].count)
+      .slice(0, 5);
+
+    sortedWorkouts.forEach(([name, stats]) => {
+      summary += `- ${name}: ${stats.count}회`;
+
+      if (stats.weights.length > 0) {
+        const avgWeight = stats.weights.reduce((a, b) => a + b, 0) / stats.weights.length;
+        const maxWeight = Math.max(...stats.weights);
+        const minWeight = Math.min(...stats.weights);
+        summary += ` | 무게 ${minWeight}~${maxWeight}kg (평균 ${avgWeight.toFixed(1)}kg)`;
+
+        // 발전도 분석
+        if (stats.weights.length >= 3) {
+          const recent = stats.weights.slice(-2).reduce((a, b) => a + b, 0) / 2;
+          const old = stats.weights.slice(0, 2).reduce((a, b) => a + b, 0) / 2;
+          const trend = recent - old;
+          if (trend > 0) summary += ` 📈 ${trend.toFixed(1)}kg 증가`;
+          else if (trend < -1) summary += ` 📉 ${Math.abs(trend).toFixed(1)}kg 감소`;
+        }
+      }
+
+      if (stats.totalSets > 0) {
+        summary += ` | 평균 ${(stats.totalSets / stats.count).toFixed(1)}세트`;
+      }
+
+      if (stats.durations.length > 0) {
+        const avgDuration = stats.durations.reduce((a, b) => a + b, 0) / stats.durations.length;
+        summary += ` | 평균 ${avgDuration.toFixed(1)}분`;
+      }
+
+      summary += ` (마지막: ${stats.lastDate})\n`;
+    });
+
+    summary += `\n🎯 운동 타입 분포:\n`;
+    const sortedTypes = Array.from(typeCount.entries())
+      .sort((a, b) => b[1] - a[1]);
+    sortedTypes.forEach(([type, count]) => {
+      const percentage = ((count / totalWorkouts) * 100).toFixed(0);
+      summary += `- ${type}: ${count}회 (${percentage}%)\n`;
+    });
+
+    // 5. 최근 3일 상세 기록
+    summary += `\n📅 최근 3일 상세:\n`;
+    logs.slice(0, 3).forEach((log, index) => {
       summary += `${index + 1}. ${log.date}\n`;
       log.workouts.forEach((workout) => {
-        summary += `   - ${workout.name}`;
+        summary += `   • ${workout.name}`;
         if (workout.weight_kg) summary += ` ${workout.weight_kg}kg`;
-        if (workout.sets) summary += ` ${workout.sets}세트`;
-        if (workout.reps) summary += ` ${workout.reps}회`;
+        if (workout.sets && workout.reps) summary += ` ${workout.sets}세트×${workout.reps}회`;
         if (workout.duration_min) summary += ` ${workout.duration_min}분`;
         summary += `\n`;
       });
-      summary += '\n';
     });
 
     return summary;
   };
 
-  // Setup View (프로필 생성)
-  if (viewMode === 'setup') {
+  // Profile Chat View (대화형 프로필 설정)
+  if (viewMode === 'profile-chat') {
     return (
       <div className="container">
         <div className="recommend-header">
-          <h1>AI 운동 추천 설정</h1>
-          <p className="subtitle">운동 목표와 배경을 알려주시면 AI가 맞춤 추천을 해드립니다</p>
+          <h1>프로필 설정</h1>
+          <p className="subtitle">AI와 대화하며 맞춤 프로필을 만들어보세요</p>
         </div>
 
-        <div className="profile-setup">
-          <div className="setup-instruction">
-            <h3>운동 목표와 상황을 자유롭게 적어주세요</h3>
-            <p className="instruction-text">
-              예시: "주말마다 토요일 일요일 아침에 스노보드를 빡세게 타고, 스노보드 피지컬 향상을 위한 운동을
-              하고 싶어요. 비시즌에는 러닝을 입문하려고 트레드밀을 탑니다."
-            </p>
-          </div>
-
-          <textarea
-            className="profile-input"
-            value={userInput}
-            onChange={(e) => setUserInput(e.target.value)}
-            placeholder="운동 목표, 주요 스포츠, 운동 스케줄, 특이사항 등을 자유롭게 입력하세요..."
-            rows={8}
-          />
-
-          {error && (
-            <div className="error-box">
-              <p>{error}</p>
-            </div>
-          )}
-
-          <div className="setup-buttons">
-            {profile && (
-              <button className="cancel-button" onClick={() => setViewMode('ready')}>
-                취소
-              </button>
+        <div className="chat-container">
+          <div className="chat-messages">
+            {profileChatMessages.map((msg, idx) => (
+              <div key={idx} className={`chat-message ${msg.role}`}>
+                <div className="message-content">{msg.content}</div>
+              </div>
+            ))}
+            {isProfileChatProcessing && (
+              <div className="chat-message assistant">
+                <div className="message-content">
+                  <div className="typing-indicator">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                  </div>
+                </div>
+              </div>
             )}
-            <button
-              className="primary-button"
-              onClick={handleGenerateProfile}
-              disabled={isGeneratingProfile || !userInput.trim()}
-            >
-              {isGeneratingProfile ? 'AI가 정리하는 중...' : 'AI로 정리하기'}
-            </button>
           </div>
 
-          {isGeneratingProfile && (
-            <div className="setup-loading">
+          {isGeneratingProfile ? (
+            <div className="chat-generating">
               <div className="spinner"></div>
-              <p>AI가 운동 목표를 정리하고 있습니다...</p>
+              <p>프로필 생성 중...</p>
+            </div>
+          ) : (
+            <div className="chat-input-container">
+              <textarea
+                className="chat-input"
+                value={profileChatInput}
+                onChange={(e) => setProfileChatInput(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleProfileChatSubmit();
+                  }
+                }}
+                placeholder="답변을 입력하세요..."
+                rows={2}
+                disabled={isProfileChatProcessing}
+              />
+              <button
+                className="chat-send-button"
+                onClick={handleProfileChatSubmit}
+                disabled={isProfileChatProcessing || !profileChatInput.trim()}
+              >
+                전송
+              </button>
             </div>
           )}
         </div>
+
+        {error && (
+          <div className="error-box">
+            <p>{error}</p>
+          </div>
+        )}
       </div>
     );
   }
@@ -437,6 +753,7 @@ ${profile.goals}${feelingContext}
         <div className="recommend-header">
           <h1>AI 운동 추천</h1>
           <p className="subtitle">최근 운동 기록을 분석하여 오늘의 운동을 추천해드립니다</p>
+          {aiInfo && <p className="ai-info" style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '8px' }}>{aiInfo}</p>}
         </div>
 
         {profile && (
@@ -502,32 +819,88 @@ ${profile.goals}${feelingContext}
     );
   }
 
-  // Result View
-  return (
-    <div className="container">
-      <div className="recommend-header">
-        <h1>AI 운동 추천</h1>
-      </div>
+  // Recommendation Chat View (대화형 추천)
+  if (viewMode === 'recommendation-chat') {
+    return (
+      <div className="container">
+        <div className="recommend-header">
+          <h1>운동 추천</h1>
+          <p className="subtitle">AI와 대화하며 추천을 조정해보세요</p>
+        </div>
 
-      <div className="recommend-result">
-        <div className="recommend-content">
-          {recommendation.split('\n').map((line, index) => (
-            <p key={index}>{line}</p>
-          ))}
+        <div className="chat-container">
+          <div className="chat-messages">
+            {recommendationChatMessages.map((msg, idx) => (
+              <div key={idx} className={`chat-message ${msg.role}`}>
+                <div className="message-content">
+                  {msg.content.split('\n').map((line, i) => (
+                    <p key={i}>{line}</p>
+                  ))}
+                </div>
+              </div>
+            ))}
+            {isRecommendationChatProcessing && (
+              <div className="chat-message assistant">
+                <div className="message-content">
+                  <div className="typing-indicator">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="chat-input-container">
+            <textarea
+              className="chat-input"
+              value={recommendationChatInput}
+              onChange={(e) => setRecommendationChatInput(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleRecommendationChatSubmit();
+                }
+              }}
+              placeholder="피드백을 입력하세요 (예: 스쿼트 무게 너무 높아요, 시간 부족해요)"
+              rows={2}
+              disabled={isRecommendationChatProcessing}
+            />
+            <div className="chat-buttons">
+              <button
+                className="chat-finalize-button"
+                onClick={handleFinalizeRecommendation}
+                disabled={isRecommendationChatProcessing}
+              >
+                ✓ 확정하고 Todo 저장
+              </button>
+              <button
+                className="chat-send-button"
+                onClick={handleRecommendationChatSubmit}
+                disabled={isRecommendationChatProcessing || !recommendationChatInput.trim()}
+              >
+                전송
+              </button>
+            </div>
+          </div>
         </div>
-        <div className="result-actions">
-          <button className="secondary-button" onClick={() => setViewMode('ready')}>
-            돌아가기
-          </button>
-          <button className="primary-button" onClick={handleSaveAsTodo}>
-            오늘의 Todo로 저장
-          </button>
-        </div>
+
         {error && (
           <div className="error-box">
             <p>{error}</p>
           </div>
         )}
+      </div>
+    );
+  }
+
+  // 기본 View (혹시 다른 상태일 경우)
+  return (
+    <div className="container">
+      <div className="recommend-loading">
+        <div className="spinner"></div>
+        <p>로딩 중...</p>
       </div>
     </div>
   );

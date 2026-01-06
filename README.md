@@ -10,9 +10,9 @@
 - 완전 무료, 로그인 불필요
 
 ### AI 모드 (유료)
-- OpenAI Whisper API 음성 인식 (정확도 향상)
-- GPT-4o-mini 스마트 파싱 (자연어 이해)
-- 월 300원 이하 비용 (개인 사용 기준)
+- Google Gemini 2.0 Flash 음성 인식 (정확도 향상)
+- Gemini 2.0 Flash 스마트 파싱 (자연어 이해)
+- 무료 또는 저비용 (개인 사용 기준)
 
 ## 기능
 
@@ -31,7 +31,7 @@
 - Vite
 - React Router
 - Web Speech API
-- OpenAI API (Whisper + GPT-4o-mini)
+- Google Gemini API (Gemini 2.0 Flash)
 
 ## 실행 방법
 
@@ -43,9 +43,9 @@ npm install
 
 ### 2. AI 모드 설정 (선택사항)
 
-AI 모드를 사용하려면 OpenAI API 키가 필요합니다.
+AI 모드를 사용하려면 Google Gemini API 키가 필요합니다.
 
-1. [OpenAI API Keys](https://platform.openai.com/api-keys)에서 API 키 발급
+1. [Google AI Studio](https://aistudio.google.com/apikey)에서 API 키 발급
 2. `.env` 파일 생성:
 
 ```bash
@@ -55,7 +55,7 @@ cp .env.example .env
 3. `.env` 파일에 API 키 입력:
 
 ```
-VITE_OPENAI_API_KEY=sk-proj-...your-api-key
+VITE_GEMINI_API_KEY=your-api-key
 ```
 
 ### 3. 개발 서버 실행
@@ -178,17 +178,20 @@ src/
 ├── features/
 │   ├── speech/
 │   │   ├── useSpeechRecognition.ts      # Web Speech API 훅
-│   │   └── useWhisperRecording.ts       # Whisper API 훅
+│   │   └── useWhisperRecording.ts       # Gemini 음성 인식 훅
 │   ├── normalize/
 │   │   └── normalizeText.ts             # 텍스트 정규화
 │   └── parse/
 │       ├── parseWorkoutText.ts          # 룰 기반 파싱
-│       └── parseWithGPT.ts              # GPT 파싱
+│       └── parseWithGPT.ts              # Gemini 파싱
 ├── storage/
 │   └── logStorage.ts                    # localStorage 관리
+├── utils/
+│   └── gemini.ts                        # Gemini API 유틸리티
 ├── pages/
 │   ├── Home.tsx                         # 홈/녹음 페이지
-│   └── History.tsx                      # 히스토리 페이지
+│   ├── History.tsx                      # 히스토리 페이지
+│   └── Recommend.tsx                    # AI 운동 추천 페이지
 ├── types/
 │   ├── index.ts                         # TypeScript 타입 정의
 │   └── speech.d.ts                      # Web Speech API 타입
@@ -199,10 +202,12 @@ src/
 
 ## AI 모드 비용
 
-개인 사용 기준 (월 30회 기록):
-- Whisper API: 1분 × 30회 × $0.006 = $0.18 (약 250원)
-- GPT-4o-mini: 30회 × 0.0001 = $0.003 (약 4원)
-- **월 총 비용: 약 250원**
+Google Gemini API는 무료 티어를 제공합니다:
+- Gemini 2.0 Flash: 무료 티어에서 월 1,500 요청 가능
+- 개인 사용 기준 (월 30~60회 기록)은 무료 티어 내에서 충분히 사용 가능
+- 무료 티어 초과 시에도 비용이 매우 저렴함
+
+자세한 정보: [Google AI Studio Pricing](https://ai.google.dev/pricing)
 
 ## 향후 개선 포인트
 

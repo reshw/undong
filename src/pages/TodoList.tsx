@@ -328,10 +328,36 @@ export const TodoList = () => {
             </button>
           </div>
           <div className={`ai-recommendation-text ${isRecommendationExpanded ? 'expanded' : 'collapsed'}`}>
-            {isRecommendationExpanded
-              ? todo.aiRecommendation
-              : todo.aiRecommendation.split('\n').slice(0, 3).join('\n') +
-                (todo.aiRecommendation.split('\n').length > 3 ? '...' : '')}
+            {(() => {
+              const aiRec = todo.aiRecommendation as any; // Runtime check for backward compatibility
+
+              // 새 형식 (객체)
+              if (aiRec && typeof aiRec === 'object' && 'finalRecommendation' in aiRec) {
+                const recommendation = aiRec.finalRecommendation;
+                if (isRecommendationExpanded) {
+                  return (
+                    <>
+                      {recommendation}
+                      {aiRec.userFeedback && (
+                        <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border-color)', fontSize: '14px', color: 'var(--text-secondary)' }}>
+                          <strong>사용자 피드백:</strong> {aiRec.userFeedback}
+                        </div>
+                      )}
+                    </>
+                  );
+                } else {
+                  return recommendation.split('\n').slice(0, 3).join('\n') + (recommendation.split('\n').length > 3 ? '...' : '');
+                }
+              }
+              // 구 형식 (문자열) - 하위 호환성
+              else if (typeof aiRec === 'string') {
+                return isRecommendationExpanded
+                  ? aiRec
+                  : aiRec.split('\n').slice(0, 3).join('\n') +
+                    (aiRec.split('\n').length > 3 ? '...' : '');
+              }
+              return '';
+            })()}
           </div>
         </div>
       )}

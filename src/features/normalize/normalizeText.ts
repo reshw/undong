@@ -4,6 +4,10 @@ interface NormalizationRule {
 }
 
 const normalizationRules: NormalizationRule[] = [
+  // 스포츠 활동
+  { pattern: /스노우\s*보드|스노\s*보딩|보드\s*타기|보딩/g, replacement: '스노보드' },
+
+  // 웨이트 트레이닝
   { pattern: /사레레|사례를|사레/g, replacement: '사이드 레터럴 레이즈' },
   { pattern: /데드\s*버그|데드북/g, replacement: '데드버그' },
   { pattern: /천국의\s*계단/g, replacement: '스텝밀' },
@@ -14,6 +18,10 @@ const normalizationRules: NormalizationRule[] = [
   { pattern: /카프(\s*레이즈)?/g, replacement: '카프레이즈' },
   { pattern: /로우|로잉/g, replacement: '로우' },
   { pattern: /런닝|러닝/g, replacement: '러닝' },
+
+  // 강도/스타일 표현 정규화
+  { pattern: /빡세게|하드하게|빡시게/g, replacement: '빡세게' },
+  { pattern: /가볍게|라이트하게|여유롭게/g, replacement: '가볍게' },
 ];
 
 export const normalizeText = (text: string): string => {
@@ -28,6 +36,11 @@ export const normalizeText = (text: string): string => {
 
 export const getKnownExercises = (): string[] => {
   return [
+    // 스포츠 활동
+    '스노보드',
+    '러닝',
+
+    // 근력 운동
     '사이드 레터럴 레이즈',
     '데드버그',
     '스텝밀',
@@ -37,7 +50,6 @@ export const getKnownExercises = (): string[] => {
     '사이드플랭크',
     '카프레이즈',
     '로우',
-    '러닝',
     '벤치프레스',
     '스쿼트',
     '데드리프트',
@@ -49,6 +61,8 @@ export const getKnownExercises = (): string[] => {
     '레그컬',
     '레그익스텐션',
     '숄더프레스',
+
+    // 유산소/기능성 운동
     '버피',
     '마운틴클라이머',
     '점핑잭',

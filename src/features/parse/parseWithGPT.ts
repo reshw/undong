@@ -1,4 +1,5 @@
 import type { Workout } from '../../types';
+import { generateText } from '../../utils/gemini';
 
 const SYSTEM_PROMPT = `당신은 운동 기록을 구조화하는 전문가입니다.
 사용자가 말한 운동 내용을 JSON 배열로 변환해주세요.
@@ -10,7 +11,7 @@ const SYSTEM_PROMPT = `당신은 운동 기록을 구조화하는 전문가입�
   "reps": 반복 횟수 (숫자 또는 null),
   "weight_kg": 무게(kg) (숫자 또는 null),
   "duration_min": 시간(분) (숫자 또는 null),
-  "type": "strength" | "cardio" | "core" | "mobility" | "unknown",
+  "type": "strength" | "cardio" | "core" | "mobility" | "snowboard" | "unknown",
   "note": "추가 메모" (문자열 또는 null)
 }
 
@@ -19,86 +20,65 @@ const SYSTEM_PROMPT = `당신은 운동 기록을 구조화하는 전문가입�
 - cardio: 유산소 운동 (러닝, 사이클, 로잉 등)
 - core: 코어 운동 (플랭크, 크런치, 데드버그 등)
 - mobility: 유연성/가동성 운동 (스트레칭, 요가 등)
+- snowboard: 스노보드 활동
 - unknown: 분류 불가
+
+측정 방식:
+- 근력 운동: sets(세트), reps(횟수), weight_kg(무게)
+- 유산소 운동: duration_min(시간) 또는 reps(횟수)
+- 스노보드:
+  * duration_min: "3시간", "120분" → 시간으로 기록
+  * reps: "10번", "15회 run" → 탄 횟수로 기록
+  * note: 강도("빡세게", "가볍게"), 스타일("프리스타일", "카빙"), 구간("곤돌라", "초급 슬로프") 등
 
 주의사항:
 - 반드시 유효한 JSON 배열만 반환하세요.
 - 추가 설명이나 마크다운 없이 JSON만 반환하세요.
 - 숫자가 없으면 null을 사용하세요.
-- "무겁게", "가볍게", "힘들었음" 같은 표현은 note에 포함하세요.`;
+- "무겁게", "가볍게", "힘들었음" 같은 표현은 note에 포함하세요.
+- 스노보드의 경우 시간과 횟수를 둘 다 기록할 수 있습니다.
+
+예시:
+입력: "스노보드 3시간 빡세게 탔어요"
+출력: [{"name": "스노보드", "sets": null, "reps": null, "weight_kg": null, "duration_min": 180, "type": "snowboard", "note": "빡세게"}]
+
+입력: "스노보드 15번 탔는데 곤돌라 타고"
+출력: [{"name": "스노보드", "sets": null, "reps": 15, "weight_kg": null, "duration_min": null, "type": "snowboard", "note": "곤돌라"}]`;
 
 export const parseWithGPT = async (text: string): Promise<Workout[]> => {
-  const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-
-  console.log('[GPT] API Key exists:', !!apiKey);
-  console.log('[GPT] API Key prefix:', apiKey?.substring(0, 10));
-  console.log('[GPT] Input text:', text);
-
-  if (!apiKey) {
-    console.error('[GPT] No API key found');
-    throw new Error('OpenAI API 키가 설정되지 않았습니다.');
-  }
+  console.log('[Gemini] Input text:', text);
 
   if (!text.trim()) {
-    console.log('[GPT] Empty text, returning empty array');
+    console.log('[Gemini] Empty text, returning empty array');
     return [];
   }
 
   try {
-    console.log('[GPT] Sending request to OpenAI...');
+    console.log('[Gemini] Sending request to Gemini...');
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: SYSTEM_PROMPT,
-          },
-          {
-            role: 'user',
-            content: `다음 운동 기록을 JSON 배열로 변환해주세요:\n\n${text}`,
-          },
-        ],
-        temperature: 0.3,
-        max_tokens: 1000,
-      }),
-    });
+    const content = await generateText(
+      SYSTEM_PROMPT,
+      `다음 운동 기록을 JSON 배열로 변환해주세요:\n\n${text}`,
+      { temperature: 0.3, maxOutputTokens: 1000 }
+    );
 
-    console.log('[GPT] Response status:', response.status);
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error('[GPT] API Error:', errorData);
-      throw new Error(`GPT API error: ${errorData.error?.message || response.status} - ${JSON.stringify(errorData)}`);
-    }
-
-    const data = await response.json();
-    console.log('[GPT] Response data:', data);
-
-    const content = data.choices[0]?.message?.content;
-    console.log('[GPT] Content:', content);
+    console.log('[Gemini] Content:', content);
 
     if (!content) {
-      throw new Error('GPT 응답이 비어있습니다.');
+      throw new Error('Gemini 응답이 비어있습니다.');
     }
 
     const jsonMatch = content.match(/\[[\s\S]*\]/);
     if (!jsonMatch) {
-      console.error('[GPT] No JSON found in content:', content);
+      console.error('[Gemini] No JSON found in content:', content);
       throw new Error('유효한 JSON을 찾을 수 없습니다.');
     }
 
     const workouts = JSON.parse(jsonMatch[0]) as Workout[];
-    console.log('[GPT] Parsed workouts:', workouts);
+    console.log('[Gemini] Parsed workouts:', workouts);
     return workouts;
   } catch (err) {
-    console.error('[GPT] Parsing error:', err);
+    console.error('[Gemini] Parsing error:', err);
     throw err;
   }
 };
