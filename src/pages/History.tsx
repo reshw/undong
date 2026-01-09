@@ -238,8 +238,8 @@ export const History = () => {
       <div className="container">
         <div className="header">
           <h1>운동 추가</h1>
-          <button className="cancel-button" onClick={handleCompleteAdding}>
-            완료
+          <button className="complete-button" onClick={handleCompleteAdding}>
+            ✓ 완료
           </button>
         </div>
 
@@ -458,7 +458,7 @@ export const History = () => {
 
             <div className="action-buttons">
               <button className="primary-button" onClick={handleSave}>
-                저장하고 계속 추가
+                💾 저장하고 계속 추가
               </button>
             </div>
             <div className="hint-text">저장 후 같은 날짜에 운동을 계속 추가할 수 있습니다</div>

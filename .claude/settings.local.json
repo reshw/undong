@@ -9,7 +9,9 @@
       "Bash(git restore:*)",
       "Bash(git commit:*)",
       "Bash(git push)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(git fetch:*)",
+      "Bash(git ls-tree:*)"
     ]
   }
 }
