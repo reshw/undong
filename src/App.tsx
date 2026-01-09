@@ -1,6 +1,9 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Login } from './pages/Login';
+import { Signup } from './pages/Signup';
+import { PrivacyPolicy } from './pages/PrivacyPolicy';
+import { TermsOfService } from './pages/TermsOfService';
 import { History } from './pages/History';
 import { Dashboard } from './pages/Dashboard';
 import { TodoList } from './pages/TodoList';
@@ -43,9 +46,19 @@ function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <div className="app-container">
-          <ProtectedRoutes />
-        </div>
+        <Routes>
+          {/* Public routes */}
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsOfService />} />
+
+          {/* Protected routes */}
+          <Route path="/*" element={
+            <div className="app-container">
+              <ProtectedRoutes />
+            </div>
+          } />
+        </Routes>
       </BrowserRouter>
     </AuthProvider>
   );
