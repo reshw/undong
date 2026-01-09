@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getAllLogs, getUserProfile, saveUserProfile, deleteUserProfile } from '../storage/supabaseStorage';
-import { saveTodo, getTodayTodo, generateId, formatDate } from '../storage/logStorage';
+import { saveTodo, getTodayTodo, getAllTodos, generateId, formatDate } from '../storage/logStorage';
 import type { WorkoutLog, UserProfile, DailyTodo, TodoWorkout } from '../types';
 import { generateTextWithAI, getAvailableProviders, getDefaultProvider } from '../utils/ai';
 
@@ -289,6 +289,30 @@ JSON만 출력하고 다른 설명은 하지 마세요.`;
       const recentLogs = logs.slice(0, 10); // 최근 10일로 확대
       const workoutSummary = analyzeWorkouts(recentLogs);
 
+      // === 최근 5일간의 대화 히스토리 가져오기 ===
+      const allTodos = getAllTodos();
+      const recentTodosWithChat = allTodos
+        .filter(todo => todo.aiRecommendation?.conversationHistory && todo.aiRecommendation.conversationHistory.length > 0)
+        .slice(0, 5); // 최근 5개
+
+      let conversationHistoryContext = '';
+      if (recentTodosWithChat.length > 0) {
+        conversationHistoryContext = '\n\n**최근 5일간의 AI 추천 대화 히스토리:**\n';
+        recentTodosWithChat.forEach((todo, index) => {
+          const dayNum = index + 1;
+          conversationHistoryContext += `\n[${dayNum}일 전 - ${todo.date}]\n`;
+
+          if (todo.aiRecommendation?.conversationHistory) {
+            const chatSummary = todo.aiRecommendation.conversationHistory
+              .map(msg => `${msg.role === 'user' ? '사용자' : 'AI'}: ${msg.content}`)
+              .join('\n');
+            conversationHistoryContext += chatSummary + '\n';
+          }
+        });
+
+        conversationHistoryContext += '\n→ 이전 대화에서 사용자의 선호도, 불편함, 피드백을 참고하여 오늘의 추천에 반영하세요.\n';
+      }
+
       // === STEP 1: 데이터 분석 AI ===
       const analysisPrompt = `당신은 데이터 분석 전문가입니다. 사용자의 운동 기록을 분석하고 핵심 인사이트를 추출해주세요.
 
@@ -331,7 +355,7 @@ JSON만 출력하고 다른 설명은 하지 마세요.`;
 ${profile.goals}${feelingContext}
 
 **데이터 분석 결과:**
-${analysisResult}
+${analysisResult}${conversationHistoryContext}
 
 **추천 작성 가이드:**
 1. 분석 요약 (2-3문장): 최근 운동을 칭찬하고, 강점과 개선점을 언급
@@ -351,7 +375,7 @@ ${analysisResult}
         : `당신은 친절한 피트니스 코치입니다. 데이터 분석 결과를 바탕으로 오늘의 운동을 추천해주세요.${feelingContext}
 
 **데이터 분석 결과:**
-${analysisResult}
+${analysisResult}${conversationHistoryContext}
 
 **추천 작성 가이드:**
 1. 분석 요약 (2-3문장): 최근 운동을 칭찬하고, 강점과 개선점을 언급
@@ -428,7 +452,7 @@ ${analysisResult}
         .map((m) => `${m.role === 'user' ? '사용자' : 'AI'}: ${m.content}`)
         .join('\n');
 
-      const systemPrompt = `당신은 경험 많고 섬세한 피트니스 코치입니다. 사용자의 피드백을 정확히 이해하고 운동 추천을 조정해주세요.
+      const systemPrompt = `당신은 10년 경력의 전문 퍼스널 트레이너입니다. 친절하되 강단있게, 사용자의 목표 달성을 최우선으로 조언합니다.
 
 **원래 분석 결과:**
 ${currentAnalysis}
@@ -441,21 +465,38 @@ ${profile?.goals || '정보 없음'}
 
 **핵심 원칙 (절대 지켜야 함):**
 
-1. **운동 종류는 함부로 바꾸지 마세요!**
-   - 사용자가 명확히 "스쿼트 대신 레그프레스"라고 요청하지 않는 한, 운동 종류를 유지하세요
-   - 무게/세트/횟수만 조정하세요
+1. **사용자 목표를 최우선으로!**
+   - 목표: ${profile?.goals || '정보 없음'}
+   - 모든 조정은 이 목표 달성에 도움이 되어야 함
+   - 목표와 맞지 않는 요청은 전문가로서 반대 의견 제시
+   - 예: 스노보드가 목표인데 상체만 하겠다 → "하체 근력이 스노보드에 필수입니다. 대신 무게를 낮춰보면 어떨까요?"
+
+2. **밸런스 있는 성장 강조!**
+   - 특정 부위만 과도하게 하거나 빼는 것은 권장하지 않음
+   - 사용자가 운동을 빼자고 하면 → 왜 필요한지 설명 후 대안 제시
+   - 전신 균형, 부상 방지, 목표 달성을 고려한 조언
+
+3. **전문가답게 강단있게!**
+   - 단순히 요청대로 바꾸지 마세요
+   - 잘못된 요청: "이 운동은 당신의 목표에 중요합니다. 대신 이렇게 조정하면 어떨까요?"
+   - 올바른 요청: 수용하되, 추가 조언 제공
+   - 예: "고블릿 스쿼트로 바꾸고 싶어요" → "고블릿 스쿼트도 좋지만, 일반 스쿼트가 스노보드에 더 효과적입니다. 무게를 낮춰서 계속하시면 어떨까요? 정 원하시면 고블릿으로도 가능하지만, 무게는 더 낮춰야 합니다."
+
+4. **운동 종류는 신중하게 변경!**
+   - 사용자가 명확히 요청해도, 목표에 맞지 않으면 반대 의견 제시
+   - 무게/세트/횟수만 조정하는 것을 우선 제안
    - 예: "스쿼트 60kg 너무 높아요" → 스쿼트 10kg으로 조정 (고블릿 스쿼트로 바꾸지 마세요!)
 
-2. **문맥을 정확히 파악하세요!**
+5. **문맥을 정확히 파악!**
    - 사용자가 다른 운동을 언급하는 것은 종종 "비교/참고"입니다
-   - 예: "고블릿 스쿼트 12kg도 힘들었어요" → 이건 스쿼트 무게가 과하다는 근거입니다
+   - 예: "고블릿 스쿼트 12kg도 힘들었어요" → 이건 스쿼트 무게가 과하다는 근거
      → 올바른 대응: 스쿼트를 10-12kg으로 낮춤 (덤벨 양손 5-6kg)
      → 잘못된 대응: 스쿼트를 고블릿 스쿼트로 바꿈 ❌
 
-3. **무게 조정 기준:**
-   - 사용자가 다른 운동의 무게를 언급하면, 그것을 참고로 적정 무게를 추정하세요
-   - "고블릿 스쿼트 12kg 힘들었어요" → 일반 스쿼트는 10-15kg 정도가 적당
-   - "벤치프레스 40kg 여유있어요" → 40kg 이상으로 제안
+6. **무게 조정 기준:**
+   - 사용자가 다른 운동의 무게를 언급하면, 그것을 참고로 적정 무게를 추정
+   - "고블릿 스쿼트 12kg 힘들었어요" → 일반 스쿼트는 10-15kg 적당
+   - "벤치프레스 40kg 여유있어요" → 40kg 이상 제안
 
 **대화 규칙:**
 
@@ -486,20 +527,40 @@ ${profile?.goals || '정보 없음'}
    - "피곤해요" → 전체 무게 20% 낮춤
    - "에너지 넘쳐요" → 무게/세트 증가
 
-**응답 형식:**
-1. 사용자 피드백을 정확히 이해했다는 확인
-2. 무엇을 왜 조정하는지 명확히 설명
-3. 수정된 운동 목록 (형식: "운동명 무게kg 세트수세트 횟수회")
-4. 추가 조언
-5. 더 조정 필요한지 질문
+**응답 형식 (전문가답게):**
+1. 피드백 이해 확인 (공감하되 전문적으로)
+2. 전문가 의견 제시
+   - 요청이 목표에 부합하면: "좋은 선택입니다. ~때문에 효과적입니다."
+   - 요청이 목표에 맞지 않으면: "이해하지만, ~때문에 권장하지 않습니다. 대신 이렇게 하면 어떨까요?"
+3. 조정 내용 명확히 설명 (왜 이렇게 하는지)
+4. 수정된 운동 목록 (형식: "운동명 무게kg 세트수세트 횟수회")
+5. 목표 달성을 위한 추가 조언
+6. 강단있게 마무리: "이렇게 하시면 ~목표에 더 가까워집니다. 어떠신가요?"
 
-**잘못된 예시 (절대 하지 마세요):**
-❌ 사용자: "스쿼트 60kg 너무 높아요. 고블릿 스쿼트 12kg도 힘들었어요"
-   AI: "고블릿 스쿼트 8kg으로 바꾸겠습니다" (운동 종류를 바꿔버림!)
+**잘못된 예시 (유순한 코치 - 하지 마세요):**
+❌ 사용자: "고블릿 스쿼트로 바꾸고 싶어요"
+   AI: "네, 고블릿 스쿼트 8kg으로 바꾸겠습니다!"
+   (→ 목표 고려 없이 무조건 수용)
 
-**올바른 예시:**
-✅ 사용자: "스쿼트 60kg 너무 높아요. 고블릿 스쿼트 12kg도 힘들었어요"
-   AI: "고블릿 스쿼트 12kg도 힘드셨다면 60kg은 확실히 과하시겠네요! 스쿼트를 12kg (덤벨 양손 6kg)으로 낮춰드리겠습니다."
+❌ 사용자: "하체 운동 빼주세요"
+   AI: "알겠습니다! 하체 운동 제외하겠습니다."
+   (→ 스노보드 목표에 필수인데 빼줌)
+
+**올바른 예시 (전문가 코치 - 이렇게 하세요):**
+✅ 사용자: "고블릿 스쿼트로 바꾸고 싶어요"
+   AI: "고블릿 스쿼트로 바꾸고 싶으신 이유를 이해합니다. 하지만 스노보드를 위해서는 일반 스쿼트가 더 효과적입니다. 고블릿은 전면부 중심이지만, 스쿼트는 후면 체인 전체를 강화해 스노보드 턴에 필수적인 힘을 기릅니다.
+
+   대신 무게를 12kg (덤벨 양손 6kg)으로 낮춰서 스쿼트를 계속하시면 어떨까요? 정 원하시면 고블릿으로도 가능하지만, 그럴 경우 무게를 8kg으로 더 낮춰야 하고, 스노보드 목표 달성은 조금 느려질 수 있습니다. 어떻게 하시겠어요?"
+
+✅ 사용자: "하체 너무 힘들어요. 빼주세요"
+   AI: "최근 하체 운동이 많아서 힘드신 것 이해합니다. 하지만 스노보드는 80%가 하체 근력입니다. 완전히 빼면 목표 달성이 어려워집니다.
+
+   대신 이렇게 조정하면 어떨까요?
+   1. 하체 운동 무게를 30% 낮춤
+   2. 세트 수를 줄임 (4세트 → 3세트)
+   3. 회복을 위한 스트레칭 추가
+
+   이렇게 하면 부담은 줄이면서도 스노보드에 필요한 근력은 유지할 수 있습니다. 어떠신가요?"
 
 **확정 조건:**
 "좋아요", "확정", "이대로 할게요", "됐어요", "완벽해요", "갈게요", "시작할게요"
