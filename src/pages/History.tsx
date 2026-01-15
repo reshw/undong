@@ -440,11 +440,13 @@ export const History = () => {
                     <div key={idx} className={`workout-card ${workout.type}`}>
                       <div className="workout-name">{workout.name}</div>
                       <div className="workout-details">
+                        {workout.distance_km && <span className="distance">{workout.distance_km} km</span>}
+                        {workout.pace && <span className="pace">{workout.pace} /km</span>}
                         {workout.weight_kg && <span className="weight">{workout.weight_kg} kg</span>}
                         {workout.sets && <span>{workout.sets} 세트</span>}
                         {workout.reps && <span>{workout.reps} 회</span>}
                         {workout.duration_min && <span>{workout.duration_min} 분</span>}
-                        {!workout.sets && !workout.reps && !workout.duration_min && !workout.weight_kg && (
+                        {!workout.sets && !workout.reps && !workout.duration_min && !workout.weight_kg && !workout.distance_km && !workout.pace && (
                           <span className="no-details">상세 정보 없음</span>
                         )}
                       </div>
@@ -518,11 +520,13 @@ export const History = () => {
                 <div key={idx} className={`workout-card ${workout.type}`}>
                   <div className="workout-name">{workout.name}</div>
                   <div className="workout-details">
+                    {workout.distance_km && <span className="distance">{workout.distance_km} km</span>}
+                    {workout.pace && <span className="pace">{workout.pace} /km</span>}
                     {workout.weight_kg && <span className="weight">{workout.weight_kg} kg</span>}
                     {workout.sets && <span>{workout.sets} 세트</span>}
                     {workout.reps && <span>{workout.reps} 회</span>}
                     {workout.duration_min && <span>{workout.duration_min} 분</span>}
-                    {!workout.sets && !workout.reps && !workout.duration_min && !workout.weight_kg && (
+                    {!workout.sets && !workout.reps && !workout.duration_min && !workout.weight_kg && !workout.distance_km && !workout.pace && (
                       <span className="no-details">상세 정보 없음</span>
                     )}
                   </div>

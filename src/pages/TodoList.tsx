@@ -94,6 +94,8 @@ export const TodoList = () => {
           reps: w.reps || undefined,
           weight_kg: w.weight_kg || undefined,
           duration_min: w.duration_min || undefined,
+          distance_km: w.distance_km || undefined,
+          pace: w.pace || undefined,
           note: w.note || undefined,
           completed: false,
         }));
@@ -111,6 +113,8 @@ export const TodoList = () => {
             reps: w.reps || undefined,
             weight_kg: w.weight_kg || undefined,
             duration_min: w.duration_min || undefined,
+            distance_km: w.distance_km || undefined,
+            pace: w.pace || undefined,
             note: w.note || undefined,
             completed: false,
           }));
@@ -380,6 +384,8 @@ export const TodoList = () => {
             <div className="todo-workout-info">
               <div className="todo-workout-name">{workout.name}</div>
               <div className="todo-workout-specs">
+                {workout.distance_km && <span className="spec-distance">{workout.distance_km}km</span>}
+                {workout.pace && <span className="spec-pace">{workout.pace}/km</span>}
                 {workout.weight_kg && <span className="spec-weight">{workout.weight_kg}kg</span>}
                 {workout.sets && workout.reps && (
                   <span>

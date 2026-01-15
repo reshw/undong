@@ -38,6 +38,8 @@ export const getAllLogs = async (): Promise<WorkoutLog[]> => {
           reps,
           weight_kg,
           duration_min,
+          distance_km,
+          pace,
           note
         )
       `)
@@ -58,6 +60,8 @@ export const getAllLogs = async (): Promise<WorkoutLog[]> => {
         reps: w.reps,
         weight_kg: w.weight_kg,
         duration_min: w.duration_min,
+        distance_km: w.distance_km,
+        pace: w.pace,
         note: w.note,
       })),
       memo: log.memo,
@@ -99,6 +103,8 @@ export const saveLog = async (log: Omit<WorkoutLog, 'id'> & { id?: string }): Pr
         reps: workout.reps,
         weight_kg: workout.weight_kg,
         duration_min: workout.duration_min,
+        distance_km: workout.distance_km,
+        pace: workout.pace,
         note: workout.note,
       }));
 
@@ -147,6 +153,8 @@ export const getLogById = async (id: string): Promise<WorkoutLog | null> => {
           reps,
           weight_kg,
           duration_min,
+          distance_km,
+          pace,
           note
         )
       `)
@@ -168,6 +176,8 @@ export const getLogById = async (id: string): Promise<WorkoutLog | null> => {
         reps: w.reps,
         weight_kg: w.weight_kg,
         duration_min: w.duration_min,
+        distance_km: w.distance_km,
+        pace: w.pace,
         note: w.note,
       })),
       memo: data.memo,

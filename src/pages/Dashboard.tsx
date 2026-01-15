@@ -84,10 +84,20 @@ export const Dashboard = () => {
           if (workout.name.toLowerCase().includes('스노보드')) stats.snowboardDays.add(log.date);
 
           // 유산소 거리 및 시간 계산
-          if (workout.type === 'cardio' && workout.duration_min) {
-            const distance = calculateCardioDistance(workout.name, workout.duration_min);
+          if (workout.type === 'cardio') {
+            // distance_km이 있으면 직접 사용, 없으면 duration_min으로 계산
+            let distance = 0;
+            if (workout.distance_km) {
+              distance = workout.distance_km;
+            } else if (workout.duration_min) {
+              distance = calculateCardioDistance(workout.name, workout.duration_min);
+            }
+
             stats.totalDistance += distance;
-            stats.totalCardioMinutes += workout.duration_min;
+
+            if (workout.duration_min) {
+              stats.totalCardioMinutes += workout.duration_min;
+            }
           }
         });
       }

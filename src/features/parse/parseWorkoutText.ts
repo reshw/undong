@@ -35,6 +35,8 @@ interface ParsedNumbers {
   reps: number | null;
   weight_kg: number | null;
   duration_min: number | null;
+  distance_km: number | null;
+  pace: string | null;
 }
 
 const extractNumbers = (segment: string): ParsedNumbers => {
@@ -42,6 +44,8 @@ const extractNumbers = (segment: string): ParsedNumbers => {
   let reps: number | null = null;
   let weight_kg: number | null = null;
   let duration_min: number | null = null;
+  let distance_km: number | null = null;
+  let pace: string | null = null;
 
   const setsMatch = segment.match(/(\d+)\s*세트/);
   if (setsMatch) {
@@ -59,9 +63,40 @@ const extractNumbers = (segment: string): ParsedNumbers => {
     weight_kg = parseFloat(weightMatch[1]);
   }
 
-  // "분" 패턴
+  // 거리 파싱: "2km", "10킬로", "5키로"
+  const distanceMatch = segment.match(/(\d+(?:\.\d+)?)\s*(km|킬로|키로)/i);
+  if (distanceMatch && !weightMatch) {
+    // weight와 구분하기 위해 weightMatch가 없을 때만
+    distance_km = parseFloat(distanceMatch[1]);
+  }
+
+  // 페이스 파싱: "1분 30초", "2분", "5:30"
+  const paceMinSecMatch = segment.match(/(\d+)\s*분\s*(\d+)\s*초/);
+  if (paceMinSecMatch) {
+    const min = paceMinSecMatch[1];
+    const sec = paceMinSecMatch[2];
+    pace = `${min}:${sec.padStart(2, '0')}`;
+  } else {
+    // "2분" 형식
+    const paceMinOnlyMatch = segment.match(/(\d+)\s*분(?!\s*간)/); // "분간"이 아닌 경우
+    if (paceMinOnlyMatch) {
+      const min = paceMinOnlyMatch[1];
+      // duration과 구분: 페이스는 보통 5분 이하
+      if (parseInt(min) <= 10) {
+        pace = `${min}:00`;
+      }
+    }
+  }
+
+  // 콜론 형식: "5:30"
+  const paceColonMatch = segment.match(/(\d+):(\d+)/);
+  if (paceColonMatch) {
+    pace = `${paceColonMatch[1]}:${paceColonMatch[2].padStart(2, '0')}`;
+  }
+
+  // "분" 패턴 (duration)
   const durationMinMatch = segment.match(/(\d+)\s*분(간)?/);
-  if (durationMinMatch) {
+  if (durationMinMatch && !pace) {
     duration_min = parseInt(durationMinMatch[1], 10);
   }
 
@@ -78,7 +113,7 @@ const extractNumbers = (segment: string): ParsedNumbers => {
     sets = parseInt(multiplyMatch[2], 10);
   }
 
-  return { sets, reps, weight_kg, duration_min };
+  return { sets, reps, weight_kg, duration_min, distance_km, pace };
 };
 
 const findExerciseName = (segment: string): string | null => {
@@ -93,11 +128,13 @@ const findExerciseName = (segment: string): string | null => {
   const cleaned = segment
     .replace(/\d+(?:\.\d+)?\s*시간/g, '')
     .replace(/\d+\s*분(간)?/g, '')
+    .replace(/\d+\s*초/g, '')
+    .replace(/\d+:\d+/g, '')
     .replace(/\d+\s*세트/g, '')
     .replace(/\d+\s*(회|개|번)/g, '')
-    .replace(/\d+(?:\.\d+)?\s*(kg|킬로|키로)/gi, '')
+    .replace(/\d+(?:\.\d+)?\s*(kg|킬로|키로|km)/gi, '')
     .replace(/\d+\s*x\s*\d+/gi, '')
-    .replace(/빡세게|가볍게|하드하게|라이트하게/g, '')
+    .replace(/빡세게|가볍게|하드하게|라이트하게|인터벌|속도|템포/g, '')
     .trim();
 
   if (cleaned.length > 1) {
@@ -122,7 +159,7 @@ export const parseWorkoutText = (normalizedText: string): Workout[] => {
     const name = findExerciseName(trimmed);
     if (!name) continue;
 
-    const { sets, reps, weight_kg, duration_min } = extractNumbers(trimmed);
+    const { sets, reps, weight_kg, duration_min, distance_km, pace } = extractNumbers(trimmed);
 
     const type = determineWorkoutType(name);
 
@@ -133,7 +170,7 @@ export const parseWorkoutText = (normalizedText: string): Workout[] => {
       note = noteMatch[1];
     } else {
       // 강도/스타일 표현 추출
-      const intensityMatch = trimmed.match(/(빡세게|가볍게|하드하게|라이트하게|프리스타일|카빙|곤돌라|초급|중급|고급)/);
+      const intensityMatch = trimmed.match(/(빡세게|가볍게|하드하게|라이트하게|인터벌|속도|템포|프리스타일|카빙|곤돌라|초급|중급|고급)/);
       if (intensityMatch) {
         note = intensityMatch[1];
       }
@@ -145,6 +182,8 @@ export const parseWorkoutText = (normalizedText: string): Workout[] => {
       reps,
       weight_kg,
       duration_min,
+      distance_km,
+      pace,
       type,
       note,
     });

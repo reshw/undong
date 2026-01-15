@@ -14,6 +14,8 @@ export interface Workout {
   reps: number | null;
   weight_kg: number | null;
   duration_min: number | null;
+  distance_km: number | null;
+  pace: string | null; // "5:30" (5분 30초/km)
   type: WorkoutType;
   note: string | null;
 }
@@ -92,6 +94,8 @@ export interface TodoWorkout {
   reps?: number;
   weight_kg?: number;
   duration_min?: number;
+  distance_km?: number;
+  pace?: string;
   note?: string;
   completed: boolean;
 }
