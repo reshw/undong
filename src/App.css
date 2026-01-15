@@ -2046,6 +2046,20 @@ body {
   color: var(--text-secondary);
 }
 
+.login-business-info {
+  text-align: center;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-color);
+}
+
+.login-business-info p {
+  font-size: 11px;
+  color: #999;
+  margin: 0;
+  line-height: 1.5;
+}
+
 /* Policy Pages */
 .policy-container {
   max-width: 800px;
@@ -2137,6 +2151,58 @@ body {
 
 .contact-info p:last-child {
   margin-bottom: 0;
+}
+
+/* Policy Table */
+.policy-section table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+  background: var(--card-bg);
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+}
+
+.policy-section table thead {
+  background: var(--gradient-light);
+}
+
+.policy-section table th {
+  padding: 14px 12px;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary-color);
+  border-bottom: 2px solid var(--border-color);
+}
+
+.policy-section table td {
+  padding: 14px 12px;
+  font-size: 13px;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-color);
+  line-height: 1.6;
+}
+
+.policy-section table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.policy-section table tbody tr:hover {
+  background: var(--input-bg);
+}
+
+@media (max-width: 768px) {
+  .policy-section table {
+    font-size: 12px;
+  }
+
+  .policy-section table th,
+  .policy-section table td {
+    padding: 10px 8px;
+    font-size: 11px;
+  }
 }
 
 .loading-screen {

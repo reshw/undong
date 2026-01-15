@@ -3,20 +3,21 @@ export const PrivacyPolicy = () => {
     <div className="container">
       <div className="policy-container">
         <h1>개인정보처리방침</h1>
-        <p className="policy-date">시행일자: 2026년 1월 9일</p>
+        <p className="policy-date">시행일자: 2026년 1월 15일</p>
 
         <section className="policy-section">
           <h2>1. 개인정보의 수집 및 이용 목적</h2>
           <p>
-            Voice Workout Log(이하 "회사")는 다음의 목적을 위하여 개인정보를 처리합니다.
+            jh308(제이에이치308)(이하 "회사")는 다음의 목적을 위하여 개인정보를 처리합니다.
             처리하고 있는 개인정보는 다음의 목적 이외의 용도로는 이용되지 않으며,
             이용 목적이 변경되는 경우에는 개인정보 보호법 제18조에 따라 별도의 동의를 받는 등
             필요한 조치를 이행할 예정입니다.
           </p>
           <ul>
             <li>회원 가입 및 관리: 회원 가입 의사 확인, 회원제 서비스 제공, 본인 식별·인증</li>
-            <li>서비스 제공: 운동 기록 관리, AI 기반 운동 추천, 맞춤형 콘텐츠 제공</li>
-            <li>마케팅 및 광고: 신규 서비스 개발 및 맞춤 서비스 제공, 이벤트 정보 및 참여기회 제공</li>
+            <li>서비스 제공: 운동 기록 관리, AI 기반 운동 분석 및 추천, 맞춤형 콘텐츠 제공</li>
+            <li>서비스 개선: 신규 서비스 개발 및 맞춤 서비스 제공, 서비스 품질 향상</li>
+            <li>고객 지원: 문의 응대, 공지사항 전달, 불만 처리 등 회원 관리</li>
           </ul>
         </section>
 
@@ -39,6 +40,18 @@ export const PrivacyPolicy = () => {
             <li>AI 추천 대화 내역</li>
             <li>사용자 프로필 정보 (운동 목표, 선호도 등)</li>
             <li>서비스 이용 기록, 접속 로그, 쿠키, 접속 IP 정보</li>
+          </ul>
+
+          <h3>민감정보(건강정보)</h3>
+          <p>
+            회사는 서비스 제공을 위하여 이용자의 신체활동 및 건강과 관련된 정보를 처리할 수 있으며,
+            이는 「개인정보 보호법」 제23조에 따른 민감정보에 해당합니다.
+            해당 정보는 이용자의 명시적 동의를 받은 경우에만 처리됩니다.
+          </p>
+          <ul>
+            <li>운동 기록(운동 종류, 강도, 세트, 반복 횟수, 무게 등)</li>
+            <li>운동 수행 패턴, 피로도 및 회복 관련 정보</li>
+            <li>사용자가 직접 입력하거나 음성으로 제공한 신체 상태 정보</li>
           </ul>
         </section>
 
@@ -83,7 +96,11 @@ export const PrivacyPolicy = () => {
             처리하며, 정보주체의 동의, 법률의 특별한 규정 등 개인정보 보호법 제17조에 해당하는
             경우에만 개인정보를 제3자에게 제공합니다.
           </p>
-          <p>현재 회사는 개인정보를 제3자에게 제공하지 않습니다.</p>
+          <p>
+            회사는 원칙적으로 이용자의 개인정보를 외부에 제공하지 않습니다.
+            다만, AI 기반 서비스 제공을 위하여 OpenAI 및 Google과 개인정보 처리업무를 위탁하고 있으며,
+            이는 개인정보 보호법상 제3자 제공이 아닌 처리위탁에 해당합니다.
+          </p>
         </section>
 
         <section className="policy-section">
@@ -109,6 +126,52 @@ export const PrivacyPolicy = () => {
               </ul>
             </li>
           </ul>
+          <p>
+            회사는 OpenAI 및 Google(Gemini API)이 이용자의 개인정보를
+            자체 인공지능 모델의 학습, 재사용 또는 서비스 개선 목적의 데이터로
+            활용하지 않도록 계약 및 정책에 따라 제한하고 있습니다.
+          </p>
+        </section>
+
+        <section className="policy-section">
+          <h2>5-1. 개인정보의 국외 이전</h2>
+          <p>
+            회사는 AI 기반 운동 분석 및 대화형 서비스 제공을 위하여,
+            이용자의 일부 개인정보를 국외에 소재한 수탁업체에 전송할 수 있습니다.
+          </p>
+
+          <table>
+            <thead>
+              <tr>
+                <th>이전받는 자</th>
+                <th>이전 국가</th>
+                <th>이전 항목</th>
+                <th>이전 목적</th>
+                <th>보유·이용 기간</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>OpenAI, Inc.</td>
+                <td>미국</td>
+                <td>운동기록, 사용자 입력 텍스트, AI 분석용 데이터</td>
+                <td>운동 요약 및 AI 코칭 제공</td>
+                <td>처리 목적 달성 시까지</td>
+              </tr>
+              <tr>
+                <td>Google LLC (Gemini API)</td>
+                <td>미국</td>
+                <td>운동기록, 사용자 입력 데이터</td>
+                <td>AI 기반 운동 분석 및 추천</td>
+                <td>처리 목적 달성 시까지</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <p>
+            이용자는 개인정보의 국외 이전을 거부할 수 있으며,
+            이 경우 AI 분석 및 추천 기능이 제한될 수 있습니다.
+          </p>
         </section>
 
         <section className="policy-section">
@@ -154,8 +217,9 @@ export const PrivacyPolicy = () => {
           </p>
           <div className="contact-info">
             <p><strong>개인정보 보호책임자</strong></p>
-            <p>이메일: privacy@voiceworkout.com</p>
-            <p>전화: 02-1234-5678</p>
+            <p>성명: 양석환</p>
+            <p>이메일: shy@lunagarden.co.kr</p>
+            <p>전화: 010-3114-8626</p>
           </div>
         </section>
 

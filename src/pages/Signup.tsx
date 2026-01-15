@@ -13,6 +13,7 @@ export const Signup = () => {
   });
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [agreedToPrivacy, setAgreedToPrivacy] = useState(false);
+  const [agreedToSensitiveInfo, setAgreedToSensitiveInfo] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -148,12 +149,29 @@ export const Signup = () => {
                 </span>
               </label>
             </div>
+
+            <div className="agreement-item">
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={agreedToSensitiveInfo}
+                  onChange={(e) => setAgreedToSensitiveInfo(e.target.checked)}
+                  required
+                />
+                <span>
+                  민감정보(건강정보) 수집 및 이용에 동의합니다 (필수)
+                </span>
+              </label>
+            </div>
+            <p className="field-hint" style={{ marginTop: '12px', textAlign: 'left' }}>
+              운동 기록, 신체 활동 정보 등 건강 관련 민감정보가 수집됩니다.
+            </p>
           </div>
 
           <button
             type="submit"
             className="primary-button"
-            disabled={!agreedToTerms || !agreedToPrivacy}
+            disabled={!agreedToTerms || !agreedToPrivacy || !agreedToSensitiveInfo}
           >
             회원가입
           </button>
@@ -166,6 +184,10 @@ export const Signup = () => {
               로그인
             </Link>
           </p>
+        </div>
+
+        <div className="login-business-info">
+          <p>jh308(제이에이치308) | 대표자: 양석환 | 사업자번호: 188-17-02548</p>
         </div>
       </div>
     </div>

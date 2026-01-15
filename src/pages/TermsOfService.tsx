@@ -2,13 +2,13 @@ export const TermsOfService = () => {
   return (
     <div className="container">
       <div className="policy-container">
-        <h1>이용약관</h1>
-        <p className="policy-date">시행일자: 2026년 1월 9일</p>
+        <h1>서비스 이용약관</h1>
+        <p className="policy-date">시행일자: 2026년 1월 15일</p>
 
         <section className="policy-section">
           <h2>제1조 (목적)</h2>
           <p>
-            본 약관은 Voice Workout Log(이하 "회사")가 제공하는 운동 기록 및 AI 추천 서비스(이하 "서비스")의
+            본 약관은 jh308(제이에이치308)(이하 "회사")가 제공하는 Voice Workout Log 운동 기록 및 AI 추천 서비스(이하 "서비스")의
             이용과 관련하여 회사와 회원 간의 권리, 의무 및 책임사항, 기타 필요한 사항을 규정함을 목적으로 합니다.
           </p>
         </section>
@@ -209,6 +209,10 @@ export const TermsOfService = () => {
               회사는 AI가 제공하는 운동 추천의 정확성이나 적합성을 보장하지 않으며,
               회원은 자신의 건강 상태와 능력을 고려하여 운동을 수행해야 합니다.
             </li>
+            <li>
+              회원은 운동 수행 전 전문의와 상담하여 자신의 건강 상태를 확인할 것을 권장하며,
+              서비스는 의료적 조언이나 진단을 대체하지 않습니다.
+            </li>
           </ol>
         </section>
 
@@ -235,8 +239,23 @@ export const TermsOfService = () => {
         </section>
 
         <section className="policy-section">
+          <h2>제14조 (문의 및 고객센터)</h2>
+          <p>
+            서비스 이용과 관련한 문의 사항이나 불만 사항이 있는 경우 아래의 연락처로 문의하실 수 있습니다.
+          </p>
+          <div className="contact-info">
+            <p><strong>고객센터</strong></p>
+            <p>사업자명: jh308(제이에이치308)</p>
+            <p>대표자: 양석환</p>
+            <p>사업자번호: 188-17-02548</p>
+            <p>이메일: shy@lunagarden.co.kr</p>
+            <p>전화: 010-3114-8626</p>
+          </div>
+        </section>
+
+        <section className="policy-section">
           <h2>부칙</h2>
-          <p>본 약관은 2026년 1월 9일부터 시행됩니다.</p>
+          <p>본 약관은 2026년 1월 15일부터 시행됩니다.</p>
         </section>
       </div>
     </div>
