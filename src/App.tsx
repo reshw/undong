@@ -10,8 +10,6 @@ import { TodoList } from './pages/TodoList';
 import { Recommend } from './pages/Recommend';
 import { Header } from './components/Header';
 import { BottomNav } from './components/BottomNav';
-import { Footer } from './components/Footer';
-import { FEATURES } from './config/features';
 import './App.css';
 
 function ProtectedRoutes() {
@@ -40,7 +38,6 @@ function ProtectedRoutes() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <BottomNav />
-      {FEATURES.SHOW_FOOTER && <Footer />}
     </>
   );
 }
