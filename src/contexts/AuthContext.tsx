@@ -7,12 +7,16 @@ interface User {
   username: string;
   display_name: string;
   email?: string;
+  kakao_id?: string;
+  provider?: string;
+  profile_image?: string;
 }
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (username: string) => Promise<void>;
+  loginWithKakao: (userData: User) => Promise<void>;
   logout: () => void;
 }
 
@@ -51,13 +55,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const loginWithKakao = async (userData: User) => {
+    try {
+      setUser(userData);
+      localStorage.setItem('current_user', JSON.stringify(userData));
+    } catch (err) {
+      console.error('Kakao login error:', err);
+      throw err;
+    }
+  };
+
   const logout = () => {
     setUser(null);
     localStorage.removeItem('current_user');
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, loginWithKakao, logout }}>
       {children}
     </AuthContext.Provider>
   );

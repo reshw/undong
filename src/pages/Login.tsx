@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import KakaoLogin from '../components/KakaoLogin';
 
 export const Login = () => {
   const [username, setUsername] = useState('tester01');
@@ -23,20 +24,13 @@ export const Login = () => {
     }
   };
 
-  const handleKakaoLogin = () => {
-    alert('카카오 로그인 기능은 준비 중입니다.');
-  };
-
   return (
     <div className="container">
       <div className="login-container">
         <h1>🏋️ Voice Workout Log</h1>
         <p className="login-subtitle">운동 기록 앱</p>
 
-        <button type="button" className="kakao-login-button" onClick={handleKakaoLogin}>
-          <span className="kakao-icon">💬</span>
-          카카오 로그인하기
-        </button>
+        <KakaoLogin />
 
         <div className="divider">
           <span>또는</span>

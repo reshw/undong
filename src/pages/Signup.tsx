@@ -1,31 +1,91 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import authService from '../services/authService';
 
 export const Signup = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { loginWithKakao } = useAuth();
+
+  const kakaoUserInfo = location.state?.kakaoUserInfo;
+  const fromPath = location.state?.from || '/';
+
   const [formData, setFormData] = useState({
-    username: '',
-    name: '',
+    username: kakaoUserInfo ? `kakao_${kakaoUserInfo.id}` : '',
+    name: kakaoUserInfo?.displayName || '',
     password: '',
     passwordConfirm: '',
-    email: '',
-    phone: '',
-    birthYear: '',
+    email: kakaoUserInfo?.email || '',
+    phone: kakaoUserInfo?.phoneNumber || '',
+    birthYear: kakaoUserInfo?.birthyear || '',
+    gender: kakaoUserInfo?.gender || '',
   });
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [agreedToPrivacy, setAgreedToPrivacy] = useState(false);
   const [agreedToSensitiveInfo, setAgreedToSensitiveInfo] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // 카카오 로그인이면 폼 자동 입력
+  useEffect(() => {
+    if (kakaoUserInfo) {
+      setFormData({
+        username: `kakao_${kakaoUserInfo.id}`,
+        name: kakaoUserInfo.displayName,
+        password: '',
+        passwordConfirm: '',
+        email: kakaoUserInfo.email,
+        phone: kakaoUserInfo.phoneNumber || '',
+        birthYear: kakaoUserInfo.birthyear || '',
+        gender: kakaoUserInfo.gender || '',
+      });
+    }
+  }, [kakaoUserInfo]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // 카카오 로그인으로 대체 예정
-    alert('카카오 로그인으로 회원가입이 진행됩니다.');
+    setError('');
+
+    if (!agreedToTerms || !agreedToPrivacy || !agreedToSensitiveInfo) {
+      setError('필수 약관에 모두 동의해주세요.');
+      return;
+    }
+
+    // 카카오 회원가입
+    if (kakaoUserInfo) {
+      setLoading(true);
+      try {
+        const userData = await authService.registerKakaoUser(kakaoUserInfo);
+        await loginWithKakao(userData);
+        alert('회원가입이 완료되었습니다!');
+        navigate(fromPath, { replace: true });
+      } catch (err) {
+        console.error('회원가입 실패:', err);
+        setError(err instanceof Error ? err.message : '회원가입에 실패했습니다.');
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    // 일반 회원가입 (준비 중)
+    alert('일반 회원가입 기능은 준비 중입니다. 카카오 로그인을 이용해주세요.');
   };
 
   return (
     <div className="container">
       <div className="signup-container">
         <h1>회원가입</h1>
-        <p className="signup-subtitle">Voice Workout Log에 오신 것을 환영합니다</p>
+        <p className="signup-subtitle">
+          {kakaoUserInfo ? '카카오 계정 정보를 확인해주세요' : 'Voice Workout Log에 오신 것을 환영합니다'}
+        </p>
+
+        {error && (
+          <div className="error-message" style={{ marginBottom: '20px' }}>
+            {error}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="signup-form">
           <div className="form-group">
@@ -37,6 +97,8 @@ export const Signup = () => {
               onChange={(e) => setFormData({ ...formData, username: e.target.value })}
               placeholder="영문, 숫자 조합 (4-20자)"
               required
+              disabled={!!kakaoUserInfo}
+              readOnly={!!kakaoUserInfo}
             />
           </div>
 
@@ -101,7 +163,7 @@ export const Signup = () => {
           </div>
 
           <div className="form-group">
-            <label htmlFor="birthYear">생년 *</label>
+            <label htmlFor="birthYear">출생연도 *</label>
             <input
               id="birthYear"
               type="number"
@@ -114,6 +176,35 @@ export const Signup = () => {
             />
             <p className="field-hint">나이대별 맞춤 운동 추천에 활용됩니다</p>
           </div>
+
+          <div className="form-group">
+            <label htmlFor="gender">성별 *</label>
+            <select
+              id="gender"
+              value={formData.gender}
+              onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+              required
+            >
+              <option value="">선택해주세요</option>
+              <option value="male">남성</option>
+              <option value="female">여성</option>
+            </select>
+          </div>
+
+          {kakaoUserInfo && (
+            <div className="form-group">
+              <label htmlFor="kakaoId">카카오 계정 연동</label>
+              <input
+                id="kakaoId"
+                type="text"
+                value={`카카오 ID: ${kakaoUserInfo.id}`}
+                readOnly
+                disabled
+                style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
+              />
+              <p className="field-hint">카카오 로그인으로 승인된 계정입니다</p>
+            </div>
+          )}
 
           <div className="agreements-section">
             <div className="agreement-item">
@@ -171,9 +262,9 @@ export const Signup = () => {
           <button
             type="submit"
             className="primary-button"
-            disabled={!agreedToTerms || !agreedToPrivacy || !agreedToSensitiveInfo}
+            disabled={!agreedToTerms || !agreedToPrivacy || !agreedToSensitiveInfo || loading}
           >
-            회원가입
+            {loading ? '회원가입 중...' : '회원가입'}
           </button>
         </form>
 

@@ -10,6 +10,7 @@ import { TodoList } from './pages/TodoList';
 import { Recommend } from './pages/Recommend';
 import { Header } from './components/Header';
 import { BottomNav } from './components/BottomNav';
+import KakaoCallback from './components/KakaoCallback';
 import './App.css';
 
 function ProtectedRoutes() {
@@ -51,6 +52,7 @@ function App() {
           <Route path="/signup" element={<Signup />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/auth/kakao/callback" element={<KakaoCallback />} />
 
           {/* Protected routes */}
           <Route path="/*" element={
