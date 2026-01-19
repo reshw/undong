@@ -1,0 +1,327 @@
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import clubService from '../services/clubService';
+import challengeService from '../services/challengeService';
+import type {
+  ClubDetail,
+  ClubFeedWithDetails,
+  ClubChallenge,
+  ClubMemberWithUser,
+} from '../types';
+
+type TabType = 'feed' | 'challenge' | 'members';
+
+export const ClubDetailPage = () => {
+  const { clubId } = useParams<{ clubId: string }>();
+  const navigate = useNavigate();
+
+  const [tab, setTab] = useState<TabType>('feed');
+  const [club, setClub] = useState<ClubDetail | null>(null);
+  const [feeds, setFeeds] = useState<ClubFeedWithDetails[]>([]);
+  const [challenges, setChallenges] = useState<ClubChallenge[]>([]);
+  const [members, setMembers] = useState<ClubMemberWithUser[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [myRole, setMyRole] = useState<'owner' | 'admin' | 'member' | null>(null);
+
+  useEffect(() => {
+    if (clubId) {
+      loadClubData();
+    }
+  }, [clubId]);
+
+  useEffect(() => {
+    if (clubId && club) {
+      loadTabData();
+    }
+  }, [tab, club]);
+
+  const loadClubData = async () => {
+    if (!clubId) return;
+
+    setLoading(true);
+    try {
+      const clubData = await clubService.getClubDetail(clubId);
+      setClub(clubData);
+
+      // Get my role
+      const membersList = await clubService.getClubMembers(clubId);
+      const currentUserId = localStorage.getItem('current_user')
+        ? JSON.parse(localStorage.getItem('current_user')!).id
+        : null;
+      const myMembership = membersList.find((m) => m.user_id === currentUserId);
+      setMyRole(myMembership?.role || null);
+    } catch (error) {
+      console.error('클럽 로드 실패:', error);
+      alert('클럽을 불러오는데 실패했습니다.');
+      navigate('/club');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadTabData = async () => {
+    if (!clubId) return;
+
+    try {
+      switch (tab) {
+        case 'feed':
+          const feedData = await clubService.getClubFeeds(clubId);
+          setFeeds(feedData);
+          break;
+        case 'challenge':
+          const challengeData = await challengeService.getActiveChallenges(clubId);
+          setChallenges(challengeData);
+          break;
+        case 'members':
+          const memberData = await clubService.getClubMembers(clubId);
+          setMembers(memberData);
+          break;
+      }
+    } catch (error) {
+      console.error('데이터 로드 실패:', error);
+    }
+  };
+
+  const handleInvite = () => {
+    if (!club) return;
+    clubService.shareToKakao(club);
+  };
+
+  const handleLeave = async () => {
+    if (!clubId || !confirm('정말 클럽을 탈퇴하시겠습니까?')) return;
+
+    try {
+      await clubService.leaveClub(clubId);
+      alert('클럽을 탈퇴했습니다.');
+      navigate('/club');
+    } catch (error) {
+      alert(error instanceof Error ? error.message : '탈퇴에 실패했습니다.');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="container">
+        <div className="loading-screen">로딩 중...</div>
+      </div>
+    );
+  }
+
+  if (!club) {
+    return (
+      <div className="container">
+        <div className="empty-state">
+          <p>클럽을 찾을 수 없습니다.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container">
+      <div className="header">
+        <button className="back-button" onClick={() => navigate('/club')}>
+          ← 뒤로
+        </button>
+        <h2>{club.name}</h2>
+      </div>
+
+      {/* Club Info Card */}
+      <div className="section" style={{ marginBottom: '20px' }}>
+        <p
+          style={{
+            fontSize: '14px',
+            color: 'var(--text-secondary)',
+            marginBottom: '12px',
+          }}
+        >
+          {club.description || '설명이 없습니다.'}
+        </p>
+        <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+          <div className="stat-chip">{club.is_public ? '🌐 공개' : '🔒 비공개'}</div>
+          <div className="stat-chip">👥 {club.member_count}명</div>
+          <div className="stat-chip">🎯 챌린지 {club.active_challenge_count}개</div>
+        </div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button className="primary-button" onClick={handleInvite}>
+            📤 초대하기
+          </button>
+          {myRole !== 'owner' && (
+            <button className="cancel-button" onClick={handleLeave}>
+              탈퇴
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="mode-selector">
+        <button
+          className={`mode-button ${tab === 'feed' ? 'active' : ''}`}
+          onClick={() => setTab('feed')}
+        >
+          피드
+        </button>
+        <button
+          className={`mode-button ${tab === 'challenge' ? 'active' : ''}`}
+          onClick={() => setTab('challenge')}
+        >
+          챌린지
+        </button>
+        <button
+          className={`mode-button ${tab === 'members' ? 'active' : ''}`}
+          onClick={() => setTab('members')}
+        >
+          멤버
+        </button>
+      </div>
+
+      {/* Feed Tab */}
+      {tab === 'feed' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {feeds.length === 0 ? (
+            <div className="empty-state">
+              <p>아직 공유된 운동이 없습니다.</p>
+            </div>
+          ) : (
+            feeds.map((feed) => (
+              <div key={feed.id} className="section">
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginBottom: '12px',
+                  }}
+                >
+                  <div
+                    className="profile-avatar"
+                    style={{ width: '32px', height: '32px', fontSize: '14px' }}
+                  >
+                    {feed.user.display_name[0]}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: '600' }}>
+                      {feed.user.display_name}
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                      {new Date(feed.shared_at).toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+                <div className="detail-date">{feed.workout_log.date}</div>
+                <div className="workout-cards">
+                  {feed.workout_log.workouts.map((workout, idx) => (
+                    <div key={idx} className={`workout-card ${workout.type}`}>
+                      <div className="workout-name">{workout.name}</div>
+                      <div className="workout-details">
+                        {workout.weight_kg && (
+                          <span className="weight">{workout.weight_kg} kg</span>
+                        )}
+                        {workout.sets && <span>{workout.sets} 세트</span>}
+                        {workout.reps && <span>{workout.reps} 회</span>}
+                        {workout.duration_min && <span>{workout.duration_min} 분</span>}
+                      </div>
+                      {workout.note && <div className="workout-note">{workout.note}</div>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {/* Challenge Tab */}
+      {tab === 'challenge' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {challenges.length === 0 ? (
+            <div className="empty-state">
+              <p>진행 중인 챌린지가 없습니다.</p>
+            </div>
+          ) : (
+            challenges.map((challenge) => {
+              const progress = challengeService.calculateProgress(
+                challenge.current_value,
+                challenge.target_value
+              );
+              return (
+                <div
+                  key={challenge.id}
+                  className="section"
+                  onClick={() => navigate(`/club/${clubId}/challenge/${challenge.id}`)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '8px' }}>
+                    {challenge.title}
+                  </h3>
+                  {challenge.description && (
+                    <p
+                      style={{
+                        fontSize: '14px',
+                        color: 'var(--text-secondary)',
+                        marginBottom: '12px',
+                      }}
+                    >
+                      {challenge.description}
+                    </p>
+                  )}
+                  <div className="progress-bar-container">
+                    <div className="progress-bar" style={{ width: `${progress}%` }} />
+                  </div>
+                  <div className="progress-text">
+                    {challenge.current_value} / {challenge.target_value} ({progress}%)
+                  </div>
+                  <div className="log-meta">
+                    <span>
+                      {challenge.start_date} ~ {challenge.end_date}
+                    </span>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
+
+      {/* Members Tab */}
+      {tab === 'members' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {members.map((member) => (
+            <div key={member.id} className="log-item">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div
+                  className="profile-avatar"
+                  style={{ width: '40px', height: '40px', fontSize: '16px' }}
+                >
+                  {member.user.display_name[0]}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '16px', fontWeight: '600' }}>
+                    {member.user.display_name}
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                    @{member.user.username}
+                  </div>
+                </div>
+                <div
+                  style={{
+                    fontSize: '12px',
+                    padding: '4px 10px',
+                    background: 'var(--primary-color)',
+                    color: 'white',
+                    borderRadius: '6px',
+                  }}
+                >
+                  {member.role === 'owner' && '👑 소유자'}
+                  {member.role === 'admin' && '⭐ 관리자'}
+                  {member.role === 'member' && '👤 멤버'}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};

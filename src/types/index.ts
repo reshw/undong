@@ -122,3 +122,85 @@ export interface DailyTodo {
   workouts: TodoWorkout[];
   createdAt: number;
 }
+
+// ============================================
+// Clubs System Types
+// ============================================
+
+export interface Club {
+  id: string;
+  name: string;
+  description: string | null;
+  is_public: boolean;
+  invite_code: string;
+  owner_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ClubWithMemberInfo extends Club {
+  my_role: 'owner' | 'admin' | 'member';
+  joined_at: string;
+}
+
+export interface ClubDetail extends Club {
+  member_count: number;
+  active_challenge_count: number;
+}
+
+export interface ClubMember {
+  id: string;
+  club_id: string;
+  user_id: string;
+  role: 'owner' | 'admin' | 'member';
+  joined_at: string;
+}
+
+export interface User {
+  id: string;
+  username: string;
+  display_name: string;
+  profile_image: string | null;
+}
+
+export interface ClubMemberWithUser extends ClubMember {
+  user: User;
+}
+
+export interface ClubFeed {
+  id: string;
+  club_id: string;
+  user_id: string;
+  workout_log_id: string;
+  shared_at: string;
+}
+
+export interface ClubFeedWithDetails extends Omit<ClubFeed, 'user_id' | 'workout_log_id'> {
+  user: User;
+  workout_log: WorkoutLog;
+}
+
+export interface ClubChallenge {
+  id: string;
+  club_id: string;
+  title: string;
+  description: string | null;
+  challenge_type: 'total_workouts' | 'total_volume' | 'total_duration' | 'total_distance';
+  target_value: number;
+  current_value: number;
+  start_date: string;
+  end_date: string;
+  status: 'active' | 'completed' | 'failed';
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ChallengeContributor {
+  user: User;
+  total_contribution: number;
+}
+
+export interface ChallengeDetailWithContributors extends ClubChallenge {
+  contributors: ChallengeContributor[];
+}

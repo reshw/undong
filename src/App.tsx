@@ -8,6 +8,11 @@ import { History } from './pages/History';
 import { Dashboard } from './pages/Dashboard';
 import { TodoList } from './pages/TodoList';
 import { Recommend } from './pages/Recommend';
+import { ClubPage } from './pages/Club';
+import { CreateClubPage } from './pages/CreateClub';
+import { ClubDetailPage } from './pages/ClubDetail';
+import { JoinClubPage } from './pages/JoinClub';
+import { ChallengeDetailPage } from './pages/ChallengeDetail';
 import { Header } from './components/Header';
 import { BottomNav } from './components/BottomNav';
 import KakaoCallback from './components/KakaoCallback';
@@ -36,6 +41,13 @@ function ProtectedRoutes() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/todo" element={<TodoList />} />
         <Route path="/recommend" element={<Recommend />} />
+
+        {/* Club routes */}
+        <Route path="/club" element={<ClubPage />} />
+        <Route path="/club/create" element={<CreateClubPage />} />
+        <Route path="/club/:clubId" element={<ClubDetailPage />} />
+        <Route path="/club/:clubId/challenge/:challengeId" element={<ChallengeDetailPage />} />
+
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <BottomNav />
@@ -53,6 +65,9 @@ function App() {
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/auth/kakao/callback" element={<KakaoCallback />} />
+
+          {/* Club invite link (public) */}
+          <Route path="/club/join/:inviteCode" element={<JoinClubPage />} />
 
           {/* Protected routes */}
           <Route path="/*" element={
