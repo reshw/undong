@@ -36,13 +36,19 @@ body {
   background: linear-gradient(180deg, #FFFFFF 0%, #F8FBFF 50%, #FFF5F8 100%);
   background-attachment: fixed;
   color: var(--text-primary);
+  overflow-x: hidden; /* 가로 스크롤 방지 */
+}
+
+html {
+  overflow-x: hidden; /* 가로 스크롤 완전 방지 */
 }
 
 .container {
   max-width: 100%;
   margin: 0 auto;
-  padding: 20px;
+  padding: 16px;
   min-height: 100vh;
+  overflow-x: hidden; /* 컨테이너 내부도 가로 스크롤 방지 */
 }
 
 @media (min-width: 768px) {
@@ -2706,8 +2712,64 @@ body {
 /* Mobile Optimization */
 @media (max-width: 640px) {
   .container {
-    padding: 12px;
+    padding: 8px;
     padding-bottom: 90px;
+  }
+
+  /* 달력 섹션 모바일 최적화 */
+  .calendar-section {
+    padding: 12px;
+    margin-left: -8px;
+    margin-right: -8px;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+
+  .calendar-grid {
+    gap: 4px;
+  }
+
+  .calendar-day {
+    padding: 4px;
+    font-size: 12px;
+  }
+
+  .calendar-weekday {
+    padding: 4px;
+    font-size: 11px;
+  }
+
+  .day-number {
+    font-size: 13px;
+  }
+
+  .indicators {
+    gap: 2px;
+    margin-top: 2px;
+  }
+
+  .indicator {
+    width: 4px;
+    height: 4px;
+  }
+
+  /* Stats Grid 모바일 */
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .stat-card {
+    padding: 12px;
+  }
+
+  .stat-value {
+    font-size: 22px;
+  }
+
+  .stat-label {
+    font-size: 12px;
   }
 
   .header {

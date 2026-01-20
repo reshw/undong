@@ -57,6 +57,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const loginWithKakao = async (userData: User) => {
     try {
+      // 1. Supabase Auth 세션 생성 (RLS를 위해 필수)
+      // 카카오 ID 기반으로 고유한 이메일/비밀번호 생성
+      const authEmail = `kakao_${userData.kakao_id}@internal.app`;
+      const authPassword = `kakao_${userData.kakao_id}_secret`;
+
+      // 먼저 signIn 시도
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: authEmail,
+        password: authPassword,
+      });
+
+      // 로그인 실패 시 (사용자가 없으면) signUp
+      if (signInError) {
+        const { error: signUpError } = await supabase.auth.signUp({
+          email: authEmail,
+          password: authPassword,
+          options: {
+            data: {
+              user_id: userData.id, // users 테이블 ID 매핑
+            },
+          },
+        });
+
+        if (signUpError) {
+          console.error('Supabase Auth signUp 실패:', signUpError);
+          // Auth 실패해도 앱 로그인은 진행 (RLS만 작동 안 함)
+        }
+      }
+
+      // 2. localStorage에 사용자 정보 저장
       setUser(userData);
       localStorage.setItem('current_user', JSON.stringify(userData));
     } catch (err) {
@@ -65,7 +95,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    // Supabase Auth 로그아웃
+    await supabase.auth.signOut();
+
     setUser(null);
     localStorage.removeItem('current_user');
   };
