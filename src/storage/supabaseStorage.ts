@@ -29,6 +29,7 @@ export const getAllLogs = async (): Promise<WorkoutLog[]> => {
         raw_text,
         normalized_text,
         memo,
+        is_private,
         created_at,
         workouts (
           id,
@@ -64,6 +65,7 @@ export const getAllLogs = async (): Promise<WorkoutLog[]> => {
       })),
       memo: log.memo,
       createdAt: new Date(log.created_at).getTime(),
+      isPrivate: log.is_private ?? false,
     }));
   } catch (error) {
     console.error('Failed to load logs:', error);
@@ -84,6 +86,7 @@ export const saveLog = async (log: Omit<WorkoutLog, 'id'> & { id?: string }): Pr
         raw_text: log.rawText,
         normalized_text: log.normalizedText,
         memo: log.memo,
+        is_private: log.isPrivate ?? false, // 기본값은 공개 (false)
       })
       .select()
       .single();
@@ -120,6 +123,7 @@ export const saveLog = async (log: Omit<WorkoutLog, 'id'> & { id?: string }): Pr
       workouts: log.workouts,
       memo: log.memo,
       createdAt: log.createdAt,
+      isPrivate: log.isPrivate ?? false,
     };
   } catch (error) {
     console.error('Failed to save log:', error);
@@ -151,6 +155,7 @@ export const getLogById = async (id: string): Promise<WorkoutLog | null> => {
         raw_text,
         normalized_text,
         memo,
+        is_private,
         created_at,
         workouts (
           id,
@@ -187,6 +192,7 @@ export const getLogById = async (id: string): Promise<WorkoutLog | null> => {
       })),
       memo: data.memo,
       createdAt: new Date(data.created_at).getTime(),
+      isPrivate: data.is_private ?? false,
     };
   } catch (error) {
     console.error('Failed to get log:', error);

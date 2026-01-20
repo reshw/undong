@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import type { WorkoutLog, RecordingState, Workout, ClubWithMemberInfo } from '../types';
+import type { WorkoutLog, RecordingState, Workout } from '../types';
 import { getAllLogs, deleteLog, saveLog, formatDate } from '../storage/supabaseStorage';
 import { useSpeechRecognition } from '../features/speech/useSpeechRecognition';
 import { useWhisperRecording } from '../features/speech/useWhisperRecording';
 import { normalizeText } from '../features/normalize/normalizeText';
 import { parseWorkoutText } from '../features/parse/parseWorkoutText';
 import { parseWithGPT } from '../features/parse/parseWithGPT';
-import clubService from '../services/clubService';
 import challengeService from '../services/challengeService';
 
 type AddMode = 'web-speech' | 'ai';
@@ -29,8 +28,7 @@ export const History = () => {
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [dateMode, setDateMode] = useState<'today' | 'custom'>('today');
-  const [showShareModal, setShowShareModal] = useState(false);
-  const [selectedLogForShare, setSelectedLogForShare] = useState<WorkoutLog | null>(null);
+  const [isPrivate, setIsPrivate] = useState(false); // 나만 보기 설정
 
   const webSpeech = useSpeechRecognition();
   const whisper = useWhisperRecording();
@@ -157,6 +155,7 @@ export const History = () => {
       workouts,
       memo: null,
       createdAt: Date.now(),
+      isPrivate, // 나만 보기 설정 포함
     };
 
     try {
@@ -197,6 +196,7 @@ export const History = () => {
     setWorkouts([]);
     setSelectedDate(new Date());
     setDateMode('today');
+    setIsPrivate(false);
     webSpeech.resetTranscript();
   };
 
@@ -481,6 +481,24 @@ export const History = () => {
               )}
             </div>
 
+            <div className="section">
+              <h3>공유 설정</h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: 'var(--card-bg)', borderRadius: '8px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', flex: 1 }}>
+                  <input
+                    type="checkbox"
+                    checked={isPrivate}
+                    onChange={(e) => setIsPrivate(e.target.checked)}
+                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                  />
+                  <span>🔒 나만 보기</span>
+                </label>
+                <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                  {isPrivate ? '이 기록은 나에게만 보입니다' : '클럽 멤버들이 이 기록을 볼 수 있습니다'}
+                </div>
+              </div>
+            </div>
+
             <div className="action-buttons">
               <button className="primary-button" onClick={handleSave}>
                 💾 저장하고 계속 추가
@@ -537,26 +555,7 @@ export const History = () => {
 
           {/* 모든 운동 표시 */}
           <div className="section">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <h3 style={{ margin: 0 }}>운동 기록 ({allWorkouts.length}개)</h3>
-              {dayLogs.length > 0 && (
-                <button
-                  className="secondary-button"
-                  style={{ padding: '6px 12px', fontSize: '14px' }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    console.log('[Share] Button clicked, dayLogs:', dayLogs);
-                    console.log('[Share] First log:', dayLogs[0]);
-                    // 첫 번째 로그를 대표로 공유 (모든 운동이 포함됨)
-                    setSelectedLogForShare(dayLogs[0]);
-                    setShowShareModal(true);
-                    console.log('[Share] Modal should open');
-                  }}
-                >
-                  📤 클럽 공유
-                </button>
-              )}
-            </div>
+            <h3>운동 기록 ({allWorkouts.length}개)</h3>
             <div className="workout-cards">
               {allWorkouts.map((workout, idx) => (
                 <div key={idx} className={`workout-card ${workout.type}`}>
@@ -603,17 +602,6 @@ export const History = () => {
             ))}
           </div>
         </div>
-
-        {/* Share to Club Modal */}
-        {showShareModal && selectedLogForShare && (
-          <ShareToClubModal
-            log={selectedLogForShare}
-            onClose={() => {
-              setShowShareModal(false);
-              setSelectedLogForShare(null);
-            }}
-          />
-        )}
       </div>
     );
   }
@@ -739,143 +727,6 @@ export const History = () => {
           })}
         </div>
       )}
-
-      {/* Share to Club Modal */}
-      {showShareModal && selectedLogForShare && (
-        <ShareToClubModal
-          log={selectedLogForShare}
-          onClose={() => {
-            setShowShareModal(false);
-            setSelectedLogForShare(null);
-          }}
-        />
-      )}
-    </div>
-  );
-};
-
-// Share to Club Modal Component
-const ShareToClubModal = ({
-  log,
-  onClose,
-}: {
-  log: WorkoutLog;
-  onClose: () => void;
-}) => {
-  const [clubs, setClubs] = useState<ClubWithMemberInfo[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [sharing, setSharing] = useState(false);
-
-  useEffect(() => {
-    loadClubs();
-  }, []);
-
-  const loadClubs = async () => {
-    try {
-      const myClubs = await clubService.getMyClubs();
-      setClubs(myClubs);
-    } catch (error) {
-      console.error('클럽 목록 로드 실패:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleShare = async (clubId: string) => {
-    setSharing(true);
-    try {
-      await clubService.shareWorkoutToClub(clubId, log.id);
-      alert('클럽에 공유되었습니다!');
-      onClose();
-    } catch (error) {
-      alert(error instanceof Error ? error.message : '공유에 실패했습니다.');
-    } finally {
-      setSharing(false);
-    }
-  };
-
-  console.log('[ShareModal] Rendering modal, clubs:', clubs.length);
-
-  return (
-    <div
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: 'rgba(0, 0, 0, 0.5)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 10000, // z-index 증가
-      }}
-      onClick={onClose}
-    >
-      <div
-        className="section"
-        style={{
-          maxWidth: '500px',
-          width: '90%',
-          maxHeight: '70vh',
-          overflow: 'auto',
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h3>클럽에 공유하기</h3>
-
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: '20px' }}>
-            로딩 중...
-          </div>
-        ) : clubs.length === 0 ? (
-          <div className="empty-state">
-            <p>가입한 클럽이 없습니다.</p>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {clubs.map((club) => (
-              <div
-                key={club.id}
-                className="log-item"
-                style={{
-                  cursor: 'pointer',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                }}
-                onClick={() => !sharing && handleShare(club.id)}
-              >
-                <div>
-                  <div style={{ fontSize: '16px', fontWeight: '600', marginBottom: '4px' }}>
-                    {club.name}
-                  </div>
-                  {club.description && (
-                    <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
-                      {club.description}
-                    </div>
-                  )}
-                </div>
-                <button
-                  className="primary-button"
-                  style={{ padding: '8px 16px' }}
-                  disabled={sharing}
-                >
-                  공유
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <button
-          className="cancel-button"
-          onClick={onClose}
-          style={{ marginTop: '16px', width: '100%' }}
-        >
-          취소
-        </button>
-      </div>
     </div>
   );
 };

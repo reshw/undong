@@ -28,6 +28,11 @@ export interface WorkoutLog {
   workouts: Workout[];
   memo: string | null;
   createdAt: number;
+  isPrivate?: boolean; // 비공개 여부 (true: 나만 보기, false: 클럽 멤버와 공유)
+  // 클럽 멤버 로그 조회 시 추가 정보
+  userId?: string;
+  userDisplayName?: string;
+  userProfileImage?: string | null;
 }
 
 export interface SpeechRecognitionHookResult {

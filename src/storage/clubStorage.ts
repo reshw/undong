@@ -704,7 +704,7 @@ export const updateChallenge = async (
 
 export const deleteChallenge = async (challengeId: string): Promise<void> => {
   try {
-    const { error } = await supabase
+    const { error} = await supabase
       .from('club_challenges')
       .delete()
       .eq('id', challengeId);
@@ -713,5 +713,96 @@ export const deleteChallenge = async (challengeId: string): Promise<void> => {
   } catch (error) {
     console.error('챌린지 삭제 실패:', error);
     throw new Error('챌린지 삭제에 실패했습니다.');
+  }
+};
+
+// ============================================
+// Club Member Workout Logs (Zero-Copy View Architecture)
+// ============================================
+
+/**
+ * 클럽 멤버들의 공개 운동 로그 조회
+ * Zero-Copy View Architecture: club_feeds 테이블을 사용하지 않고,
+ * RLS를 통해 workout_logs를 직접 조회
+ */
+export const getClubMemberLogs = async (
+  clubId: string,
+  limit: number = 20,
+  offset: number = 0
+): Promise<WorkoutLog[]> => {
+  try {
+    // 1. Get club member user_ids
+    const { data: members, error: membersError } = await supabase
+      .from('club_members')
+      .select('user_id')
+      .eq('club_id', clubId);
+
+    if (membersError) throw membersError;
+    if (!members || members.length === 0) return [];
+
+    const memberUserIds = members.map((m: any) => m.user_id);
+
+    // 2. Get public workout logs from these members
+    // RLS will automatically filter to only show logs from users in the same club
+    const { data: logs, error: logsError } = await supabase
+      .from('workout_logs')
+      .select(`
+        id,
+        user_id,
+        date,
+        raw_text,
+        normalized_text,
+        memo,
+        is_private,
+        created_at,
+        workouts (
+          id,
+          name,
+          type,
+          sets,
+          reps,
+          weight_kg,
+          duration_min,
+          note
+        ),
+        users (
+          display_name,
+          profile_image
+        )
+      `)
+      .in('user_id', memberUserIds)
+      .eq('is_private', false) // Only public logs
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (logsError) throw logsError;
+
+    return (logs || []).map((log: any) => ({
+      id: log.id,
+      userId: log.user_id,
+      date: log.date,
+      rawText: log.raw_text,
+      normalizedText: log.normalized_text || '',
+      workouts: (log.workouts || []).map((w: any) => ({
+        name: w.name,
+        type: w.type,
+        sets: w.sets,
+        reps: w.reps,
+        weight_kg: w.weight_kg,
+        duration_min: w.duration_min,
+        distance_km: null,
+        pace: null,
+        note: w.note,
+      })),
+      memo: log.memo,
+      createdAt: new Date(log.created_at).getTime(),
+      isPrivate: log.is_private ?? false,
+      // User info for display
+      userDisplayName: log.users?.display_name || '익명',
+      userProfileImage: log.users?.profile_image || null,
+    }));
+  } catch (error) {
+    console.error('클럽 멤버 로그 조회 실패:', error);
+    throw error instanceof Error ? error : new Error('클럽 멤버 로그 조회에 실패했습니다.');
   }
 };
