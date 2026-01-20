@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import clubService from '../services/clubService';
 import challengeService from '../services/challengeService';
+import { getClubMemberLogs } from '../storage/clubStorage';
 import type {
   ClubDetail,
-  ClubFeedWithDetails,
+  WorkoutLog,
   ClubChallenge,
   ClubMemberWithUser,
 } from '../types';
@@ -17,7 +18,7 @@ export const ClubDetailPage = () => {
 
   const [tab, setTab] = useState<TabType>('feed');
   const [club, setClub] = useState<ClubDetail | null>(null);
-  const [feeds, setFeeds] = useState<ClubFeedWithDetails[]>([]);
+  const [memberLogs, setMemberLogs] = useState<WorkoutLog[]>([]);
   const [challenges, setChallenges] = useState<ClubChallenge[]>([]);
   const [members, setMembers] = useState<ClubMemberWithUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -66,8 +67,9 @@ export const ClubDetailPage = () => {
     try {
       switch (tab) {
         case 'feed':
-          const feedData = await clubService.getClubFeeds(clubId);
-          setFeeds(feedData);
+          // Zero-Copy View: 클럽 멤버들의 공개 로그를 직접 조회
+          const logs = await getClubMemberLogs(clubId);
+          setMemberLogs(logs);
           break;
         case 'challenge':
           const challengeData = await challengeService.getActiveChallenges(clubId);
@@ -180,13 +182,17 @@ export const ClubDetailPage = () => {
       {/* Feed Tab */}
       {tab === 'feed' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {feeds.length === 0 ? (
+          {memberLogs.length === 0 ? (
             <div className="empty-state">
               <p>아직 공유된 운동이 없습니다.</p>
+              <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '8px' }}>
+                멤버들이 운동 기록을 저장하면 여기에 표시됩니다.
+              </p>
             </div>
           ) : (
-            feeds.map((feed) => (
-              <div key={feed.id} className="section">
+            memberLogs.map((log) => (
+              <div key={log.id} className="section">
+                {/* User Info Header */}
                 <div
                   style={{
                     display: 'flex',
@@ -195,35 +201,64 @@ export const ClubDetailPage = () => {
                     marginBottom: '12px',
                   }}
                 >
-                  <div
-                    className="profile-avatar"
-                    style={{ width: '32px', height: '32px', fontSize: '14px' }}
-                  >
-                    {feed.user.display_name[0]}
-                  </div>
+                  {log.userProfileImage ? (
+                    <img
+                      src={log.userProfileImage}
+                      alt={log.userDisplayName}
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '50%',
+                        objectFit: 'cover',
+                      }}
+                    />
+                  ) : (
+                    <div
+                      className="profile-avatar"
+                      style={{ width: '32px', height: '32px', fontSize: '14px' }}
+                    >
+                      {(log.userDisplayName || '?')[0]}
+                    </div>
+                  )}
                   <div>
                     <div style={{ fontSize: '14px', fontWeight: '600' }}>
-                      {feed.user.display_name}
+                      {log.userDisplayName || '익명'}
                     </div>
                     <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                      {new Date(feed.shared_at).toLocaleString()}
+                      {new Date(log.createdAt).toLocaleString('ko-KR')}
                     </div>
                   </div>
                 </div>
-                <div className="detail-date">{feed.workout_log.date}</div>
+
+                {/* Workout Date */}
+                <div className="detail-date" style={{ marginBottom: '12px' }}>
+                  {log.date}
+                </div>
+
+                {/* Workout Cards */}
                 <div className="workout-cards">
-                  {feed.workout_log.workouts.map((workout, idx) => (
+                  {log.workouts.map((workout, idx) => (
                     <div key={idx} className={`workout-card ${workout.type}`}>
                       <div className="workout-name">{workout.name}</div>
                       <div className="workout-details">
+                        {workout.distance_km && (
+                          <span className="distance">{workout.distance_km} km</span>
+                        )}
+                        {workout.pace && (
+                          <span className="pace">{workout.pace} /km</span>
+                        )}
                         {workout.weight_kg && (
                           <span className="weight">{workout.weight_kg} kg</span>
                         )}
                         {workout.sets && <span>{workout.sets} 세트</span>}
                         {workout.reps && <span>{workout.reps} 회</span>}
                         {workout.duration_min && <span>{workout.duration_min} 분</span>}
+                        {!workout.sets && !workout.reps && !workout.duration_min && !workout.weight_kg && !workout.distance_km && !workout.pace && (
+                          <span className="no-details">상세 정보 없음</span>
+                        )}
                       </div>
                       {workout.note && <div className="workout-note">{workout.note}</div>}
+                      <div className="workout-type-badge">{workout.type}</div>
                     </div>
                   ))}
                 </div>
