@@ -314,14 +314,15 @@ INSERT INTO challenges (
 ) ON CONFLICT DO NOTHING;
 
 -- ============================================
--- 9. 기존 테이블 백업 후 제거 (선택사항)
+-- 9. 기존 테이블 처리 및 호환성 뷰 생성
 -- ============================================
 
--- 주의: 프로덕션에서는 백업 후 진행하세요!
--- DROP TABLE IF EXISTS club_challenges CASCADE;
--- DROP TABLE IF EXISTS challenge_contributions CASCADE;
+-- 기존 테이블이 있으면 DROP (데이터 마이그레이션 완료 후)
+-- 주의: 프로덕션에서는 반드시 데이터 백업 후 진행하세요!
+DROP TABLE IF EXISTS club_challenges CASCADE;
+DROP TABLE IF EXISTS challenge_contributions CASCADE;
 
--- 대신 뷰를 만들어 호환성 유지
+-- 호환성을 위한 뷰 생성
 CREATE OR REPLACE VIEW club_challenges AS
 SELECT
   id,
