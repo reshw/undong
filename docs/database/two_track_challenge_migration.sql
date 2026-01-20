@@ -277,6 +277,7 @@ COMMENT ON TABLE challenge_participants IS '챌린지 참가 기록 및 기여 �
 -- ============================================
 
 -- 웰컴 챌린지: 가입 후 3일 연속 출석
+-- Note: created_by는 나중에 수동으로 업데이트하거나, 첫 번째 사용자 ID 사용
 INSERT INTO challenges (
   scope, title, description, goal_metric, goal_value,
   start_date, end_date, status,
@@ -291,7 +292,7 @@ INSERT INTO challenges (
   '2026-12-31',
   'active',
   '{"badge_url": "welcome_badge.png", "reward": "프로필 배지", "tier": "bronze"}'::jsonb,
-  (SELECT id FROM users WHERE role = 'admin' LIMIT 1)
+  (SELECT id FROM users ORDER BY created_at LIMIT 1)
 ) ON CONFLICT DO NOTHING;
 
 -- 시즌 챌린지: 2026 윈터 시즌
@@ -309,7 +310,7 @@ INSERT INTO challenges (
   '2026-01-31',
   'active',
   '{"season": "2026-Winter", "badge_url": "winter_badge.png", "tier": "silver"}'::jsonb,
-  (SELECT id FROM users WHERE role = 'admin' LIMIT 1)
+  (SELECT id FROM users ORDER BY created_at LIMIT 1)
 ) ON CONFLICT DO NOTHING;
 
 -- ============================================
