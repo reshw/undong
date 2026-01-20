@@ -545,9 +545,12 @@ export const History = () => {
                   style={{ padding: '6px 12px', fontSize: '14px' }}
                   onClick={(e) => {
                     e.stopPropagation();
+                    console.log('[Share] Button clicked, dayLogs:', dayLogs);
+                    console.log('[Share] First log:', dayLogs[0]);
                     // 첫 번째 로그를 대표로 공유 (모든 운동이 포함됨)
                     setSelectedLogForShare(dayLogs[0]);
                     setShowShareModal(true);
+                    console.log('[Share] Modal should open');
                   }}
                 >
                   📤 클럽 공유
@@ -780,6 +783,8 @@ const ShareToClubModal = ({
     }
   };
 
+  console.log('[ShareModal] Rendering modal, clubs:', clubs.length);
+
   return (
     <div
       style={{
@@ -792,7 +797,7 @@ const ShareToClubModal = ({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        zIndex: 1000,
+        zIndex: 10000, // z-index 증가
       }}
       onClick={onClose}
     >
