@@ -192,13 +192,11 @@ USING (
   )
 );
 
--- 생성 정책 (관리자만 global 생성 가능, 클럽 owner/admin은 club 생성 가능)
-CREATE POLICY "Admins can create global challenges"
-ON challenges FOR INSERT
-WITH CHECK (
-  scope = 'global' AND
-  auth.uid() IN (SELECT id FROM users WHERE role = 'admin')
-);
+-- 생성 정책 (글로벌은 DB에서 직접 생성, 클럽 owner/admin은 club 생성 가능)
+-- Note: Global challenges are created directly in DB by developers
+-- CREATE POLICY "Admins can create global challenges"
+-- ON challenges FOR INSERT
+-- WITH CHECK (scope = 'global' AND false); -- Prevent client-side creation
 
 CREATE POLICY "Club owners and admins can create club challenges"
 ON challenges FOR INSERT
@@ -213,12 +211,10 @@ WITH CHECK (
 );
 
 -- 수정 정책
-CREATE POLICY "Admins can update global challenges"
-ON challenges FOR UPDATE
-USING (
-  scope = 'global' AND
-  auth.uid() IN (SELECT id FROM users WHERE role = 'admin')
-);
+-- Note: Global challenges can only be updated via DB by developers
+-- CREATE POLICY "Admins can update global challenges"
+-- ON challenges FOR UPDATE
+-- USING (scope = 'global' AND false);
 
 CREATE POLICY "Club owners and admins can update club challenges"
 ON challenges FOR UPDATE
@@ -233,12 +229,10 @@ USING (
 );
 
 -- 삭제 정책
-CREATE POLICY "Admins can delete global challenges"
-ON challenges FOR DELETE
-USING (
-  scope = 'global' AND
-  auth.uid() IN (SELECT id FROM users WHERE role = 'admin')
-);
+-- Note: Global challenges can only be deleted via DB by developers
+-- CREATE POLICY "Admins can delete global challenges"
+-- ON challenges FOR DELETE
+-- USING (scope = 'global' AND false);
 
 CREATE POLICY "Club owners and admins can delete club challenges"
 ON challenges FOR DELETE
