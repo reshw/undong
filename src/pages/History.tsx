@@ -537,7 +537,23 @@ export const History = () => {
 
           {/* 모든 운동 표시 */}
           <div className="section">
-            <h3>운동 기록 ({allWorkouts.length}개)</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <h3 style={{ margin: 0 }}>운동 기록 ({allWorkouts.length}개)</h3>
+              {dayLogs.length > 0 && (
+                <button
+                  className="secondary-button"
+                  style={{ padding: '6px 12px', fontSize: '14px' }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // 첫 번째 로그를 대표로 공유 (모든 운동이 포함됨)
+                    setSelectedLogForShare(dayLogs[0]);
+                    setShowShareModal(true);
+                  }}
+                >
+                  📤 클럽 공유
+                </button>
+              )}
+            </div>
             <div className="workout-cards">
               {allWorkouts.map((workout, idx) => (
                 <div key={idx} className={`workout-card ${workout.type}`}>
@@ -572,25 +588,12 @@ export const History = () => {
                       minute: '2-digit',
                     })}
                   </span>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button
-                      className="secondary-button"
-                      style={{ padding: '6px 12px', fontSize: '14px' }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedLogForShare(log);
-                        setShowShareModal(true);
-                      }}
-                    >
-                      📤 공유
-                    </button>
-                    <button
-                      className="delete-session-button"
-                      onClick={() => handleDelete(log.id)}
-                    >
-                      삭제
-                    </button>
-                  </div>
+                  <button
+                    className="delete-session-button"
+                    onClick={() => handleDelete(log.id)}
+                  >
+                    삭제
+                  </button>
                 </div>
                 <div className="detail-text">{log.rawText}</div>
               </div>
