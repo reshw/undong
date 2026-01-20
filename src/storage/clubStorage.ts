@@ -758,6 +758,7 @@ export const getClubMemberLogs = async (
         workouts (
           id,
           name,
+          category,
           type,
           sets,
           reps,
@@ -785,6 +786,7 @@ export const getClubMemberLogs = async (
       normalizedText: log.normalized_text || '',
       workouts: (log.workouts || []).map((w: any) => ({
         name: w.name,
+        category: w.category || 'gym',
         type: w.type,
         sets: w.sets,
         reps: w.reps,

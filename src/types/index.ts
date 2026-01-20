@@ -6,7 +6,15 @@ export type RecordingState =
   | 'review'
   | 'error';
 
-export type WorkoutType = 'strength' | 'cardio' | 'core' | 'mobility' | 'snowboard' | 'unknown';
+// Matrix Classification: 2축 분류 체계
+// 축 1: Category (카테고리) - "어디서/어떤 판에서 놀았는가?"
+export type WorkoutCategory = 'gym' | 'snowboard' | 'running' | 'sports' | 'home' | 'other';
+
+// 축 2: Type (트레이닝 타입) - "몸을 어떻게 조졌는가?"
+export type WorkoutType = 'strength' | 'cardio' | 'skill' | 'flexibility' | 'unknown';
+
+// Legacy type for backward compatibility
+export type LegacyWorkoutType = 'strength' | 'cardio' | 'core' | 'mobility' | 'snowboard' | 'unknown';
 
 export interface Workout {
   name: string;
@@ -16,7 +24,11 @@ export interface Workout {
   duration_min: number | null;
   distance_km: number | null;
   pace: string | null; // "5:30" (5분 30초/km)
-  type: WorkoutType;
+
+  // Matrix Classification
+  category: WorkoutCategory; // 카테고리 (장소/종목)
+  type: WorkoutType; // 트레이닝 타입 (운동 효과)
+
   note: string | null;
 }
 

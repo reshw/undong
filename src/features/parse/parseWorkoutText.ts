@@ -1,25 +1,55 @@
-import type { Workout, WorkoutType } from '../../types';
+import type { Workout, WorkoutType, WorkoutCategory } from '../../types';
 import { getKnownExercises } from '../normalize/normalizeText';
 
-const CARDIO_KEYWORDS = ['러닝', '스텝밀', '사이클', '로잉', '조깅', '달리기'];
-const CORE_KEYWORDS = ['플랭크', '데드버그', '크런치', '레그레이즈', '사이드플랭크'];
-const MOBILITY_KEYWORDS = ['스트레칭', '요가', '폼롤링'];
+// Category keywords
 const SNOWBOARD_KEYWORDS = ['스노보드', '스노우보드', '보드', '보딩'];
+const RUNNING_KEYWORDS = ['러닝', '달리기', '조깅', '마라톤'];
+const SPORTS_KEYWORDS = ['축구', '농구', '배구', '테니스', '배드민턴', '골프', '수영'];
+const HOME_KEYWORDS = ['홈트', '집에서', '맨몸'];
 
-const determineWorkoutType = (name: string): WorkoutType => {
+// Type keywords
+const CARDIO_KEYWORDS = ['러닝', '스텝밀', '사이클', '로잉', '조깅', '달리기', '트레드밀'];
+const STRENGTH_KEYWORDS = ['플랭크', '데드버그', '푸쉬업', '풀업', '스쿼트', '벤치', '데드'];
+const FLEXIBILITY_KEYWORDS = ['스트레칭', '요가', '폼롤링'];
+const SKILL_KEYWORDS = ['트릭', '기물', '지빙', '박스', '레일', '스윙 연습'];
+
+/**
+ * 2축 분류: Category와 Type을 분리해서 결정
+ */
+const determineWorkoutCategory = (name: string): WorkoutCategory => {
   const lowerName = name.toLowerCase();
 
   if (SNOWBOARD_KEYWORDS.some((kw) => lowerName.includes(kw.toLowerCase()))) {
     return 'snowboard';
   }
+  if (RUNNING_KEYWORDS.some((kw) => lowerName.includes(kw.toLowerCase()))) {
+    return 'running';
+  }
+  if (SPORTS_KEYWORDS.some((kw) => lowerName.includes(kw.toLowerCase()))) {
+    return 'sports';
+  }
+  if (HOME_KEYWORDS.some((kw) => lowerName.includes(kw.toLowerCase()))) {
+    return 'home';
+  }
+
+  // 기본값: gym (헬스장 운동이 가장 일반적)
+  return 'gym';
+};
+
+const determineWorkoutType = (name: string): WorkoutType => {
+  const lowerName = name.toLowerCase();
+
+  if (SKILL_KEYWORDS.some((kw) => lowerName.includes(kw.toLowerCase()))) {
+    return 'skill';
+  }
   if (CARDIO_KEYWORDS.some((kw) => lowerName.includes(kw.toLowerCase()))) {
     return 'cardio';
   }
-  if (CORE_KEYWORDS.some((kw) => lowerName.includes(kw.toLowerCase()))) {
-    return 'core';
+  if (FLEXIBILITY_KEYWORDS.some((kw) => lowerName.includes(kw.toLowerCase()))) {
+    return 'flexibility';
   }
-  if (MOBILITY_KEYWORDS.some((kw) => lowerName.includes(kw.toLowerCase()))) {
-    return 'mobility';
+  if (STRENGTH_KEYWORDS.some((kw) => lowerName.includes(kw.toLowerCase()))) {
+    return 'strength';
   }
 
   const knownExercises = getKnownExercises();
@@ -161,6 +191,8 @@ export const parseWorkoutText = (normalizedText: string): Workout[] => {
 
     const { sets, reps, weight_kg, duration_min, distance_km, pace } = extractNumbers(trimmed);
 
+    // Matrix Classification: 2축 분류
+    const category = determineWorkoutCategory(name);
     const type = determineWorkoutType(name);
 
     // note 추출: 괄호 안 내용 또는 강도 표현
@@ -184,6 +216,7 @@ export const parseWorkoutText = (normalizedText: string): Workout[] => {
       duration_min,
       distance_km,
       pace,
+      category,
       type,
       note,
     });

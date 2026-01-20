@@ -34,6 +34,7 @@ export const getAllLogs = async (): Promise<WorkoutLog[]> => {
         workouts (
           id,
           name,
+          category,
           type,
           sets,
           reps,
@@ -54,6 +55,7 @@ export const getAllLogs = async (): Promise<WorkoutLog[]> => {
       normalizedText: log.normalized_text || '',
       workouts: (log.workouts || []).map((w: any) => ({
         name: w.name,
+        category: w.category || 'gym',
         type: w.type,
         sets: w.sets,
         reps: w.reps,
@@ -99,6 +101,7 @@ export const saveLog = async (log: Omit<WorkoutLog, 'id'> & { id?: string }): Pr
       const workoutsToInsert = log.workouts.map((workout: Workout) => ({
         workout_log_id: logData.id,
         name: workout.name,
+        category: workout.category || 'gym', // 기본값: gym
         type: workout.type,
         sets: workout.sets,
         reps: workout.reps,
@@ -160,6 +163,7 @@ export const getLogById = async (id: string): Promise<WorkoutLog | null> => {
         workouts (
           id,
           name,
+          category,
           type,
           sets,
           reps,
