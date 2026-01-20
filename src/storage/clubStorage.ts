@@ -6,7 +6,6 @@ import type {
   ClubFeedWithDetails,
   ClubChallenge,
   ChallengeDetailWithContributors,
-  WorkoutLog,
 } from '../types';
 import { supabase } from '../lib/supabase';
 
@@ -504,6 +503,30 @@ export const getActiveChallenges = async (clubId: string): Promise<ClubChallenge
     return data || [];
   } catch (error) {
     console.error('챌린지 목록 조회 실패:', error);
+    throw new Error('챌린지 목록을 불러오는데 실패했습니다.');
+  }
+};
+
+export const getAllChallenges = async (
+  clubId: string,
+  statusFilter?: 'active' | 'completed' | 'failed'
+): Promise<ClubChallenge[]> => {
+  try {
+    let query = supabase
+      .from('club_challenges')
+      .select('*')
+      .eq('club_id', clubId);
+
+    if (statusFilter) {
+      query = query.eq('status', statusFilter);
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('전체 챌린지 조회 실패:', error);
     throw new Error('챌린지 목록을 불러오는데 실패했습니다.');
   }
 };

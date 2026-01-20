@@ -71,7 +71,7 @@ export const getAllLogs = async (): Promise<WorkoutLog[]> => {
   }
 };
 
-export const saveLog = async (log: Omit<WorkoutLog, 'id'> & { id?: string }): Promise<void> => {
+export const saveLog = async (log: Omit<WorkoutLog, 'id'> & { id?: string }): Promise<WorkoutLog | null> => {
   try {
     const userId = getCurrentUserId();
 
@@ -110,6 +110,17 @@ export const saveLog = async (log: Omit<WorkoutLog, 'id'> & { id?: string }): Pr
 
       if (workoutsError) throw workoutsError;
     }
+
+    // Return saved log
+    return {
+      id: logData.id,
+      date: log.date,
+      rawText: log.rawText,
+      normalizedText: log.normalizedText,
+      workouts: log.workouts,
+      memo: log.memo,
+      createdAt: log.createdAt,
+    };
   } catch (error) {
     console.error('Failed to save log:', error);
     throw new Error('저장에 실패했습니다.');

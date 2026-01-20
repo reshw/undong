@@ -22,6 +22,7 @@ export const ClubDetailPage = () => {
   const [members, setMembers] = useState<ClubMemberWithUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [myRole, setMyRole] = useState<'owner' | 'admin' | 'member' | null>(null);
+  const [showCreateChallenge, setShowCreateChallenge] = useState(false);
 
   useEffect(() => {
     if (clubId) {
@@ -235,6 +236,14 @@ export const ClubDetailPage = () => {
       {/* Challenge Tab */}
       {tab === 'challenge' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {(myRole === 'owner' || myRole === 'admin') && (
+            <button
+              className="primary-button"
+              onClick={() => setShowCreateChallenge(true)}
+            >
+              + 챌린지 만들기
+            </button>
+          )}
           {challenges.length === 0 ? (
             <div className="empty-state">
               <p>진행 중인 챌린지가 없습니다.</p>
@@ -322,6 +331,220 @@ export const ClubDetailPage = () => {
           ))}
         </div>
       )}
+
+      {/* Create Challenge Modal */}
+      {showCreateChallenge && (
+        <CreateChallengeModal
+          clubId={clubId!}
+          onClose={() => setShowCreateChallenge(false)}
+          onSuccess={() => {
+            setShowCreateChallenge(false);
+            loadTabData();
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+// Challenge Creation Modal Component
+const CreateChallengeModal = ({
+  clubId,
+  onClose,
+  onSuccess,
+}: {
+  clubId: string;
+  onClose: () => void;
+  onSuccess: () => void;
+}) => {
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [challengeType, setChallengeType] = useState<'total_workouts' | 'total_volume' | 'total_duration' | 'total_distance'>('total_workouts');
+  const [targetValue, setTargetValue] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!title.trim()) {
+      alert('챌린지 제목을 입력해주세요.');
+      return;
+    }
+    if (!targetValue || Number(targetValue) <= 0) {
+      alert('목표 값을 입력해주세요.');
+      return;
+    }
+    if (!startDate || !endDate) {
+      alert('시작일과 종료일을 입력해주세요.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await challengeService.createChallenge({
+        club_id: clubId,
+        title: title.trim(),
+        description: description.trim() || undefined,
+        challenge_type: challengeType,
+        target_value: Number(targetValue),
+        start_date: startDate,
+        end_date: endDate,
+      });
+      alert('챌린지가 생성되었습니다!');
+      onSuccess();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : '챌린지 생성에 실패했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(0, 0, 0, 0.5)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1000,
+      }}
+      onClick={onClose}
+    >
+      <div
+        className="section"
+        style={{
+          maxWidth: '500px',
+          width: '90%',
+          maxHeight: '80vh',
+          overflow: 'auto',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3>챌린지 만들기</h3>
+
+        <div className="form-group" style={{ marginBottom: '16px' }}>
+          <label>제목 *</label>
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="예: 11월 볼륨 챌린지"
+            maxLength={100}
+            style={{
+              width: '100%',
+              padding: '12px',
+              fontSize: '16px',
+              border: '1px solid var(--border-color)',
+              borderRadius: '8px',
+              background: 'var(--input-bg)',
+            }}
+          />
+        </div>
+
+        <div className="form-group" style={{ marginBottom: '16px' }}>
+          <label>설명</label>
+          <textarea
+            className="text-input-area"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="챌린지에 대한 설명 (선택)"
+            rows={3}
+            maxLength={200}
+          />
+        </div>
+
+        <div className="form-group" style={{ marginBottom: '16px' }}>
+          <label>챌린지 타입 *</label>
+          <select
+            value={challengeType}
+            onChange={(e) => setChallengeType(e.target.value as any)}
+            style={{
+              width: '100%',
+              padding: '12px',
+              fontSize: '16px',
+              border: '1px solid var(--border-color)',
+              borderRadius: '8px',
+              background: 'var(--input-bg)',
+            }}
+          >
+            <option value="total_workouts">총 운동 횟수</option>
+            <option value="total_volume">총 볼륨 (kg)</option>
+            <option value="total_duration">총 시간 (분)</option>
+            <option value="total_distance">총 거리 (km)</option>
+          </select>
+        </div>
+
+        <div className="form-group" style={{ marginBottom: '16px' }}>
+          <label>목표 값 *</label>
+          <input
+            type="number"
+            value={targetValue}
+            onChange={(e) => setTargetValue(e.target.value)}
+            placeholder="예: 1000"
+            min="1"
+            style={{
+              width: '100%',
+              padding: '12px',
+              fontSize: '16px',
+              border: '1px solid var(--border-color)',
+              borderRadius: '8px',
+              background: 'var(--input-bg)',
+            }}
+          />
+        </div>
+
+        <div className="form-group" style={{ marginBottom: '16px' }}>
+          <label>시작일 *</label>
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '12px',
+              fontSize: '16px',
+              border: '1px solid var(--border-color)',
+              borderRadius: '8px',
+              background: 'var(--input-bg)',
+            }}
+          />
+        </div>
+
+        <div className="form-group" style={{ marginBottom: '16px' }}>
+          <label>종료일 *</label>
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '12px',
+              fontSize: '16px',
+              border: '1px solid var(--border-color)',
+              borderRadius: '8px',
+              background: 'var(--input-bg)',
+            }}
+          />
+        </div>
+
+        <div className="action-buttons">
+          <button className="cancel-button" onClick={onClose}>
+            취소
+          </button>
+          <button
+            className="primary-button"
+            onClick={handleSubmit}
+            disabled={loading}
+          >
+            {loading ? '생성 중...' : '챌린지 만들기'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 };

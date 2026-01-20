@@ -180,17 +180,69 @@ export interface ClubFeedWithDetails extends Omit<ClubFeed, 'user_id' | 'workout
   workout_log: WorkoutLog;
 }
 
+// ============================================
+// Two-Track Challenge System Types
+// ============================================
+
+export type ChallengeScope = 'global' | 'club';
+export type ChallengeGoalMetric = 'total_workouts' | 'total_volume' | 'total_duration' | 'total_distance';
+export type ChallengeStatus = 'active' | 'completed' | 'failed';
+
+// Global 챌린지 메타데이터
+export interface GlobalChallengeMetadata {
+  season?: string; // "2026-Winter"
+  tier?: 'bronze' | 'silver' | 'gold' | 'platinum';
+  badge_url?: string;
+  reward?: string;
+}
+
+// Club 챌린지 메타데이터
+export interface ClubChallengeMetadata {
+  bet_mode?: boolean;
+  penalty?: string; // "댄스영상 올리기"
+  meme_image?: string;
+  custom_data?: Record<string, any>;
+}
+
+export interface Challenge {
+  id: string;
+  scope: ChallengeScope;
+  club_id: string | null; // global이면 null, club이면 필수
+  created_by: string;
+
+  title: string;
+  description: string | null;
+
+  goal_metric: ChallengeGoalMetric;
+  goal_value: number;
+  current_value: number;
+
+  start_date: string; // YYYY-MM-DD
+  end_date: string;   // YYYY-MM-DD
+
+  status: ChallengeStatus;
+
+  meta_data: GlobalChallengeMetadata | ClubChallengeMetadata | Record<string, any>;
+
+  origin_challenge_id: string | null; // 포크된 경우 원본 ID
+
+  created_at: string;
+  updated_at: string;
+}
+
+// 기존 ClubChallenge 타입은 호환성을 위해 유지 (deprecated)
+// @deprecated Use Challenge with scope='club' instead
 export interface ClubChallenge {
   id: string;
   club_id: string;
   title: string;
   description: string | null;
-  challenge_type: 'total_workouts' | 'total_volume' | 'total_duration' | 'total_distance';
+  challenge_type: ChallengeGoalMetric;
   target_value: number;
   current_value: number;
   start_date: string;
   end_date: string;
-  status: 'active' | 'completed' | 'failed';
+  status: ChallengeStatus;
   created_by: string;
   created_at: string;
   updated_at: string;

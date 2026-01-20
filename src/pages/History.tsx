@@ -1,16 +1,22 @@
 import { useState, useEffect } from 'react';
-import type { WorkoutLog, RecordingState, Workout } from '../types';
+import { useLocation } from 'react-router-dom';
+import type { WorkoutLog, RecordingState, Workout, ClubWithMemberInfo } from '../types';
 import { getAllLogs, deleteLog, saveLog, formatDate } from '../storage/supabaseStorage';
 import { useSpeechRecognition } from '../features/speech/useSpeechRecognition';
 import { useWhisperRecording } from '../features/speech/useWhisperRecording';
 import { normalizeText } from '../features/normalize/normalizeText';
 import { parseWorkoutText } from '../features/parse/parseWorkoutText';
 import { parseWithGPT } from '../features/parse/parseWithGPT';
+import clubService from '../services/clubService';
+import challengeService from '../services/challengeService';
 
 type AddMode = 'web-speech' | 'ai';
 type InputMode = 'voice' | 'text';
 
 export const History = () => {
+  const location = useLocation();
+  const contributeChallengeId = (location.state as any)?.contributeChallengeId;
+
   const [logs, setLogs] = useState<WorkoutLog[]>([]);
   const [selectedLog, setSelectedLog] = useState<WorkoutLog | null>(null);
   const [selectedDateForDetail, setSelectedDateForDetail] = useState<string | null>(null);
@@ -23,13 +29,19 @@ export const History = () => {
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [dateMode, setDateMode] = useState<'today' | 'custom'>('today');
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [selectedLogForShare, setSelectedLogForShare] = useState<WorkoutLog | null>(null);
 
   const webSpeech = useSpeechRecognition();
   const whisper = useWhisperRecording();
 
   useEffect(() => {
     loadLogs();
-  }, []);
+    // If coming from challenge page, auto-open add mode
+    if (contributeChallengeId) {
+      setIsAdding(true);
+    }
+  }, [contributeChallengeId]);
 
   const loadLogs = async () => {
     const allLogs = await getAllLogs();
@@ -148,8 +160,19 @@ export const History = () => {
     };
 
     try {
-      await saveLog(log);
-      alert('저장되었습니다!');
+      const savedLog = await saveLog(log);
+
+      // If coming from challenge page, contribute to challenge
+      if (contributeChallengeId && savedLog?.id) {
+        try {
+          await challengeService.contributeToChallenge(contributeChallengeId, savedLog.id);
+          alert('저장되었고 챌린지에 기여되었습니다!');
+        } catch (error) {
+          alert(`저장되었지만 챌린지 기여에 실패했습니다: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
+        }
+      } else {
+        alert('저장되었습니다!');
+      }
 
       // Reset only recording-related states, keep isAdding and selectedDate
       setRecordingState('idle');
@@ -549,12 +572,25 @@ export const History = () => {
                       minute: '2-digit',
                     })}
                   </span>
-                  <button
-                    className="delete-session-button"
-                    onClick={() => handleDelete(log.id)}
-                  >
-                    삭제
-                  </button>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      className="secondary-button"
+                      style={{ padding: '6px 12px', fontSize: '14px' }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedLogForShare(log);
+                        setShowShareModal(true);
+                      }}
+                    >
+                      📤 공유
+                    </button>
+                    <button
+                      className="delete-session-button"
+                      onClick={() => handleDelete(log.id)}
+                    >
+                      삭제
+                    </button>
+                  </div>
                 </div>
                 <div className="detail-text">{log.rawText}</div>
               </div>
@@ -686,6 +722,141 @@ export const History = () => {
           })}
         </div>
       )}
+
+      {/* Share to Club Modal */}
+      {showShareModal && selectedLogForShare && (
+        <ShareToClubModal
+          log={selectedLogForShare}
+          onClose={() => {
+            setShowShareModal(false);
+            setSelectedLogForShare(null);
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+// Share to Club Modal Component
+const ShareToClubModal = ({
+  log,
+  onClose,
+}: {
+  log: WorkoutLog;
+  onClose: () => void;
+}) => {
+  const [clubs, setClubs] = useState<ClubWithMemberInfo[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [sharing, setSharing] = useState(false);
+
+  useEffect(() => {
+    loadClubs();
+  }, []);
+
+  const loadClubs = async () => {
+    try {
+      const myClubs = await clubService.getMyClubs();
+      setClubs(myClubs);
+    } catch (error) {
+      console.error('클럽 목록 로드 실패:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleShare = async (clubId: string) => {
+    setSharing(true);
+    try {
+      await clubService.shareWorkoutToClub(clubId, log.id);
+      alert('클럽에 공유되었습니다!');
+      onClose();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : '공유에 실패했습니다.');
+    } finally {
+      setSharing(false);
+    }
+  };
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(0, 0, 0, 0.5)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1000,
+      }}
+      onClick={onClose}
+    >
+      <div
+        className="section"
+        style={{
+          maxWidth: '500px',
+          width: '90%',
+          maxHeight: '70vh',
+          overflow: 'auto',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3>클럽에 공유하기</h3>
+
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '20px' }}>
+            로딩 중...
+          </div>
+        ) : clubs.length === 0 ? (
+          <div className="empty-state">
+            <p>가입한 클럽이 없습니다.</p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {clubs.map((club) => (
+              <div
+                key={club.id}
+                className="log-item"
+                style={{
+                  cursor: 'pointer',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}
+                onClick={() => !sharing && handleShare(club.id)}
+              >
+                <div>
+                  <div style={{ fontSize: '16px', fontWeight: '600', marginBottom: '4px' }}>
+                    {club.name}
+                  </div>
+                  {club.description && (
+                    <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
+                      {club.description}
+                    </div>
+                  )}
+                </div>
+                <button
+                  className="primary-button"
+                  style={{ padding: '8px 16px' }}
+                  disabled={sharing}
+                >
+                  공유
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <button
+          className="cancel-button"
+          onClick={onClose}
+          style={{ marginTop: '16px', width: '100%' }}
+        >
+          취소
+        </button>
+      </div>
     </div>
   );
 };
