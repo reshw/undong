@@ -603,6 +603,17 @@ export const History = () => {
             ))}
           </div>
         </div>
+
+        {/* Share to Club Modal */}
+        {showShareModal && selectedLogForShare && (
+          <ShareToClubModal
+            log={selectedLogForShare}
+            onClose={() => {
+              setShowShareModal(false);
+              setSelectedLogForShare(null);
+            }}
+          />
+        )}
       </div>
     );
   }
