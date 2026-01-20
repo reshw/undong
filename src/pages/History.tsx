@@ -29,6 +29,7 @@ export const History = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [dateMode, setDateMode] = useState<'today' | 'custom'>('today');
   const [isPrivate, setIsPrivate] = useState(false); // 나만 보기 설정
+  const [isAddingMore, setIsAddingMore] = useState(false); // 더 추가하기 모드
 
   const webSpeech = useSpeechRecognition();
   const whisper = useWhisperRecording();
@@ -62,10 +63,13 @@ export const History = () => {
   };
 
   const handleMicClick = async () => {
-    console.log('[History] handleMicClick - State:', recordingState, 'Mode:', addMode);
+    console.log('[History] handleMicClick - State:', recordingState, 'Mode:', addMode, 'IsAddingMore:', isAddingMore);
 
     if (recordingState === 'idle') {
-      webSpeech.resetTranscript();
+      if (!isAddingMore) {
+        // 새로 녹음 시작 (기존 내용 초기화)
+        webSpeech.resetTranscript();
+      }
       setRecordingState('listening');
 
       if (addMode === 'web-speech') {
@@ -82,15 +86,29 @@ export const History = () => {
         setTimeout(() => {
           const finalText = webSpeech.transcript.trim();
           console.log('[History] Web Speech final text:', finalText);
-          setEditableText(finalText);
-          handleParse(finalText, false);
+
+          // 더 추가하기 모드면 기존 텍스트에 추가
+          const updatedText = isAddingMore && editableText
+            ? `${editableText}, ${finalText}`
+            : finalText;
+
+          setEditableText(updatedText);
+          setIsAddingMore(false); // 추가 완료, 모드 해제
+          handleParse(updatedText, false);
         }, 500);
       } else {
         webSpeech.stopListening();
         const whisperResult = await whisper.stopRecording();
         console.log('[History] Whisper final text:', whisperResult);
-        setEditableText(whisperResult);
-        handleParse(whisperResult, true);
+
+        // 더 추가하기 모드면 기존 텍스트에 추가
+        const updatedText = isAddingMore && editableText
+          ? `${editableText}, ${whisperResult}`
+          : whisperResult;
+
+        setEditableText(updatedText);
+        setIsAddingMore(false); // 추가 완료, 모드 해제
+        handleParse(updatedText, true);
       }
     }
   };
@@ -138,6 +156,22 @@ export const History = () => {
     handleParse(editableText, addMode === 'ai');
   };
 
+  const handleRestartRecording = () => {
+    // 다시 말하기: idle 상태로 돌아가서 처음부터 다시 녹음
+    setRecordingState('idle');
+    setEditableText('');
+    setWorkouts([]);
+    setIsAddingMore(false);
+    webSpeech.resetTranscript();
+  };
+
+  const handleAddMore = () => {
+    // 더 추가하기: 기존 내용 유지하고 idle로 돌아가서 추가 녹음
+    setRecordingState('idle');
+    setIsAddingMore(true); // 추가 모드 활성화
+    webSpeech.resetTranscript(); // transcript만 초기화, editableText는 유지
+  };
+
   const handleSave = async () => {
     if (!editableText.trim()) {
       alert('저장할 내용이 없습니다.');
@@ -179,6 +213,7 @@ export const History = () => {
       setTextInput('');
       setEditableText('');
       setWorkouts([]);
+      setIsAddingMore(false);
       webSpeech.resetTranscript();
 
       await loadLogs();
@@ -197,6 +232,7 @@ export const History = () => {
     setSelectedDate(new Date());
     setDateMode('today');
     setIsPrivate(false);
+    setIsAddingMore(false);
     webSpeech.resetTranscript();
   };
 
@@ -448,9 +484,22 @@ export const History = () => {
                 onChange={(e) => setEditableText(e.target.value)}
                 rows={5}
               />
-              <button className="secondary-button" onClick={handleReparse}>
-                재정리
-              </button>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <button className="secondary-button" onClick={handleReparse}>
+                  🔄 재정리
+                </button>
+                <button className="secondary-button" onClick={handleRestartRecording}>
+                  🎤 다시 말하기
+                </button>
+                {inputMode === 'voice' && (
+                  <button className="secondary-button" onClick={handleAddMore}>
+                    ➕ 더 추가하기
+                  </button>
+                )}
+              </div>
+              <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '8px' }}>
+                💡 텍스트 수정 후 "재정리" | 처음부터 다시 녹음하려면 "다시 말하기" | 이어서 녹음하려면 "더 추가하기"
+              </div>
             </div>
 
             <div className="section">
