@@ -1,22 +1,15 @@
 import * as clubStorage from '../storage/clubStorage';
 import { formatDate } from '../storage/clubStorage';
 import type { ClubChallenge, ChallengeDetailWithContributors } from '../types';
+import type { CreateChallengeDTO } from '../types/challenge';
 
 class ChallengeService {
-  async createChallenge(data: {
-    club_id: string;
-    title: string;
-    description?: string;
-    challenge_type: 'total_workouts' | 'total_volume' | 'total_duration' | 'total_distance';
-    target_value: number;
-    start_date: string;
-    end_date: string;
-  }): Promise<ClubChallenge> {
+  async createChallenge(data: CreateChallengeDTO): Promise<ClubChallenge> {
     // Business logic validation
     if (data.title.trim().length < 3) {
       throw new Error('챌린지 제목은 최소 3자 이상이어야 합니다.');
     }
-    if (data.target_value <= 0) {
+    if (data.rules.goal_value <= 0) {
       throw new Error('목표 값은 0보다 커야 합니다.');
     }
 

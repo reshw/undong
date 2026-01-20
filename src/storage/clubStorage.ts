@@ -465,10 +465,10 @@ export const createChallenge = async (data: {
   club_id: string;
   title: string;
   description?: string;
-  challenge_type: 'total_workouts' | 'total_volume' | 'total_duration' | 'total_distance';
-  target_value: number;
+  rules: any; // ChallengeRules JSONB
   start_date: string;
   end_date: string;
+  theme_color?: string;
 }): Promise<ClubChallenge> => {
   try {
     const userId = getCurrentUserId();
@@ -476,8 +476,19 @@ export const createChallenge = async (data: {
     const { data: challenge, error } = await supabase
       .from('club_challenges')
       .insert({
-        ...data,
+        club_id: data.club_id,
+        title: data.title,
+        description: data.description,
+        rules: data.rules, // JSONB 컬럼에 저장
+        target_value: data.rules.goal_value, // 역호환성을 위해 유지
+        start_date: data.start_date,
+        end_date: data.end_date,
+        theme_color: data.theme_color,
         created_by: userId,
+        // 기본값 (constraint가 'custom'을 허용하지 않으면 'total_workouts' 사용)
+        challenge_type: 'total_workouts', // rules JSONB가 실제 로직을 결정
+        current_value: 0,
+        status: 'active',
       })
       .select()
       .single();

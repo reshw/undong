@@ -1,5 +1,6 @@
 import type { WorkoutLog, Workout, UserProfile } from '../types';
 import { supabase } from '../lib/supabase';
+import { calculateAllMetrics } from '../utils/calculateMetrics';
 
 export const formatDate = (date: Date = new Date()): string => {
   const year = date.getFullYear();
@@ -36,10 +37,19 @@ export const getAllLogs = async (): Promise<WorkoutLog[]> => {
           name,
           category,
           type,
+          target,
           sets,
           reps,
           weight_kg,
           duration_min,
+          distance_km,
+          pace,
+          speed_kph,
+          incline_percent,
+          resistance_level,
+          adjusted_dist_km,
+          volume_kg,
+          run_count,
           note
         )
       `)
@@ -57,12 +67,19 @@ export const getAllLogs = async (): Promise<WorkoutLog[]> => {
         name: w.name,
         category: w.category || 'gym',
         type: w.type,
+        target: w.target,
         sets: w.sets,
         reps: w.reps,
         weight_kg: w.weight_kg,
         duration_min: w.duration_min,
-        distance_km: null,
-        pace: null,
+        distance_km: w.distance_km,
+        pace: w.pace,
+        speed_kph: w.speed_kph,
+        incline_percent: w.incline_percent,
+        resistance_level: w.resistance_level,
+        adjusted_dist_km: w.adjusted_dist_km,
+        volume_kg: w.volume_kg,
+        run_count: w.run_count,
         note: w.note,
       })),
       memo: log.memo,
@@ -98,17 +115,31 @@ export const saveLog = async (log: Omit<WorkoutLog, 'id'> & { id?: string }): Pr
 
     // Insert workouts
     if (log.workouts && log.workouts.length > 0) {
-      const workoutsToInsert = log.workouts.map((workout: Workout) => ({
-        workout_log_id: logData.id,
-        name: workout.name,
-        category: workout.category || 'gym', // 기본값: gym
-        type: workout.type,
-        sets: workout.sets,
-        reps: workout.reps,
-        weight_kg: workout.weight_kg,
-        duration_min: workout.duration_min,
-        note: workout.note,
-      }));
+      const workoutsToInsert = log.workouts.map((workout: Workout) => {
+        // Type별 전용 지표 계산
+        const metrics = calculateAllMetrics(workout);
+
+        return {
+          workout_log_id: logData.id,
+          name: workout.name,
+          category: workout.category || 'gym', // 기본값: gym
+          type: workout.type,
+          target: workout.target || 'none', // 기본값: none
+          sets: workout.sets,
+          reps: workout.reps,
+          weight_kg: workout.weight_kg,
+          duration_min: workout.duration_min,
+          distance_km: workout.distance_km,
+          pace: workout.pace,
+          speed_kph: workout.speed_kph,
+          incline_percent: workout.incline_percent,
+          resistance_level: workout.resistance_level,
+          adjusted_dist_km: metrics.adjusted_dist_km,
+          volume_kg: metrics.volume_kg,
+          run_count: metrics.run_count,
+          note: workout.note,
+        };
+      });
 
       const { error: workoutsError } = await supabase
         .from('workouts')

@@ -9,9 +9,17 @@ interface MonthlyStats {
   totalDistance: number; // 조정된 거리
   totalCardioMinutes: number;
   avgPace: number; // 평균 페이스 (분/km)
+
+  // Matrix Classification 기반 통계
   strengthDays: Set<string>;
   cardioDays: Set<string>;
+  skillDays: Set<string>;
+  flexibilityDays: Set<string>;
+
+  // Target 기반 코어 추적
   coreDays: Set<string>;
+
+  // Category 기반 추적
   snowboardDays: Set<string>;
 }
 
@@ -65,6 +73,8 @@ export const Dashboard = () => {
       avgPace: 0,
       strengthDays: new Set<string>(),
       cardioDays: new Set<string>(),
+      skillDays: new Set<string>(),
+      flexibilityDays: new Set<string>(),
       coreDays: new Set<string>(),
       snowboardDays: new Set<string>(),
     };
@@ -77,11 +87,21 @@ export const Dashboard = () => {
         workoutDates.add(log.date);
 
         log.workouts.forEach((workout) => {
-          // 타입별 날짜 추가
+          // Type별 날짜 추가 (Matrix Classification)
           if (workout.type === 'strength') stats.strengthDays.add(log.date);
           if (workout.type === 'cardio') stats.cardioDays.add(log.date);
-          if (workout.type === 'core') stats.coreDays.add(log.date);
-          if (workout.name.toLowerCase().includes('스노보드')) stats.snowboardDays.add(log.date);
+          if (workout.type === 'skill') stats.skillDays.add(log.date);
+          if (workout.type === 'flexibility') stats.flexibilityDays.add(log.date);
+
+          // Target 기반 코어 운동 감지
+          if (workout.type === 'strength' && workout.target === 'core') {
+            stats.coreDays.add(log.date);
+          }
+
+          // Category 기반 스노보드 감지
+          if (workout.category === 'snowboard') {
+            stats.snowboardDays.add(log.date);
+          }
 
           // 유산소 거리 및 시간 계산
           if (workout.type === 'cardio') {
@@ -145,8 +165,16 @@ export const Dashboard = () => {
     logs.forEach((log) => {
       if (log.date === dateStr) {
         log.workouts.forEach((workout) => {
+          // Type별 추가
           types.add(workout.type);
-          if (workout.name.toLowerCase().includes('스노보드')) {
+
+          // Target 기반 코어 감지
+          if (workout.type === 'strength' && workout.target === 'core') {
+            types.add('core');
+          }
+
+          // Category 기반 스노보드 감지
+          if (workout.category === 'snowboard') {
             types.add('snowboard');
           }
         });

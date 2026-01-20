@@ -13,6 +13,9 @@ export type WorkoutCategory = 'gym' | 'snowboard' | 'running' | 'sports' | 'home
 // 축 2: Type (트레이닝 타입) - "몸을 어떻게 조졌는가?"
 export type WorkoutType = 'strength' | 'cardio' | 'skill' | 'flexibility' | 'unknown';
 
+// Level 3: Target (타겟 부위) - "어디를 조졌는가?" (근력 운동 상세 분류)
+export type WorkoutTarget = 'upper' | 'lower' | 'core' | 'full' | 'none';
+
 // Legacy type for backward compatibility
 export type LegacyWorkoutType = 'strength' | 'cardio' | 'core' | 'mobility' | 'snowboard' | 'unknown';
 
@@ -28,6 +31,17 @@ export interface Workout {
   // Matrix Classification
   category: WorkoutCategory; // 카테고리 (장소/종목)
   type: WorkoutType; // 트레이닝 타입 (운동 효과)
+  target?: WorkoutTarget; // 타겟 부위 (근력 운동만 해당)
+
+  // Cardio 상세 정보
+  speed_kph?: number | null; // 속도 (km/h)
+  incline_percent?: number | null; // 경사도 (%)
+  resistance_level?: number | null; // 저항 레벨 (사이클, 로잉 등)
+
+  // Type별 전용 비교 지표 (리더보드용)
+  adjusted_dist_km?: number | null; // 🏃 카디오: 평지 환산 거리 (인클라인 보정)
+  volume_kg?: number | null; // 🏋️ 근력: 총 볼륨 (무게 * 세트 * 횟수)
+  run_count?: number | null; // 🏂 스킬/스노보드: 런 수 / 시도 횟수
 
   note: string | null;
 }

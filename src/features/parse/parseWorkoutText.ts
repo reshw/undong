@@ -1,4 +1,4 @@
-import type { Workout, WorkoutType, WorkoutCategory } from '../../types';
+import type { Workout, WorkoutType, WorkoutCategory, WorkoutTarget } from '../../types';
 import { getKnownExercises } from '../normalize/normalizeText';
 
 // Category keywords
@@ -60,6 +60,39 @@ const determineWorkoutType = (name: string): WorkoutType => {
   return 'unknown';
 };
 
+/**
+ * Target 결정 (근력 운동만 해당)
+ */
+const determineWorkoutTarget = (name: string): WorkoutTarget => {
+  const lowerName = name.toLowerCase();
+
+  // Core 운동
+  const coreKeywords = ['플랭크', '크런치', '레그레이즈', '데드버그', '힐터치', '시티드 니업', '러시안 트위스트'];
+  if (coreKeywords.some((kw) => lowerName.includes(kw.toLowerCase()))) {
+    return 'core';
+  }
+
+  // Upper 운동
+  const upperKeywords = ['벤치', '프레스', '풀업', '친업', '푸쉬업', '덤벨', '숄더', '레터럴', '바벨로우', '랫풀'];
+  if (upperKeywords.some((kw) => lowerName.includes(kw.toLowerCase()))) {
+    return 'upper';
+  }
+
+  // Lower 운동
+  const lowerKeywords = ['스쿼트', '데드리프트', '레그프레스', '레그컬', '레그익스텐션', '런지', '칼프'];
+  if (lowerKeywords.some((kw) => lowerName.includes(kw.toLowerCase()))) {
+    return 'lower';
+  }
+
+  // Full 운동
+  const fullKeywords = ['버피', '클린', '스내치', '케틀벨', '스윙'];
+  if (fullKeywords.some((kw) => lowerName.includes(kw.toLowerCase()))) {
+    return 'full';
+  }
+
+  return 'none';
+};
+
 interface ParsedNumbers {
   sets: number | null;
   reps: number | null;
@@ -67,6 +100,9 @@ interface ParsedNumbers {
   duration_min: number | null;
   distance_km: number | null;
   pace: string | null;
+  speed_kph: number | null;
+  incline_percent: number | null;
+  resistance_level: number | null;
 }
 
 const extractNumbers = (segment: string): ParsedNumbers => {
@@ -76,6 +112,9 @@ const extractNumbers = (segment: string): ParsedNumbers => {
   let duration_min: number | null = null;
   let distance_km: number | null = null;
   let pace: string | null = null;
+  let speed_kph: number | null = null;
+  let incline_percent: number | null = null;
+  let resistance_level: number | null = null;
 
   const setsMatch = segment.match(/(\d+)\s*세트/);
   if (setsMatch) {
@@ -143,7 +182,30 @@ const extractNumbers = (segment: string): ParsedNumbers => {
     sets = parseInt(multiplyMatch[2], 10);
   }
 
-  return { sets, reps, weight_kg, duration_min, distance_km, pace };
+  // 속도 파싱: "5km 속도로", "시속 10km", "10km/h"
+  const speedMatch = segment.match(/(?:시속\s*)?(\d+(?:\.\d+)?)\s*(?:km|킬로|키로)\s*(?:속도로|로|\/h|퍼아워)/i);
+  if (speedMatch) {
+    speed_kph = parseFloat(speedMatch[1]);
+
+    // 속도와 시간이 있으면 거리 계산 (거리가 없을 때만)
+    if (duration_min && !distance_km) {
+      distance_km = speed_kph * (duration_min / 60);
+    }
+  }
+
+  // 경사도 파싱: "인클라인 10", "경사 15%", "오르막 10"
+  const inclineMatch = segment.match(/(?:인클라인|경사|오르막)\s*(\d+)(?:%|도)?/i);
+  if (inclineMatch) {
+    incline_percent = parseInt(inclineMatch[1], 10);
+  }
+
+  // 저항 레벨 파싱: "레벨 5", "저항 8", "기어 10"
+  const resistanceMatch = segment.match(/(?:레벨|저항|기어)\s*(\d+)/i);
+  if (resistanceMatch) {
+    resistance_level = parseInt(resistanceMatch[1], 10);
+  }
+
+  return { sets, reps, weight_kg, duration_min, distance_km, pace, speed_kph, incline_percent, resistance_level };
 };
 
 const findExerciseName = (segment: string): string | null => {
@@ -189,11 +251,14 @@ export const parseWorkoutText = (normalizedText: string): Workout[] => {
     const name = findExerciseName(trimmed);
     if (!name) continue;
 
-    const { sets, reps, weight_kg, duration_min, distance_km, pace } = extractNumbers(trimmed);
+    const { sets, reps, weight_kg, duration_min, distance_km, pace, speed_kph, incline_percent, resistance_level } = extractNumbers(trimmed);
 
     // Matrix Classification: 2축 분류
     const category = determineWorkoutCategory(name);
     const type = determineWorkoutType(name);
+
+    // Target 결정 (근력 운동만)
+    const target = type === 'strength' ? determineWorkoutTarget(name) : undefined;
 
     // note 추출: 괄호 안 내용 또는 강도 표현
     let note: string | null = null;
@@ -218,6 +283,10 @@ export const parseWorkoutText = (normalizedText: string): Workout[] => {
       pace,
       category,
       type,
+      target,
+      speed_kph,
+      incline_percent,
+      resistance_level,
       note,
     });
   }

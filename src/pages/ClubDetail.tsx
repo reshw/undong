@@ -1,8 +1,22 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import clubService from '../services/clubService';
 import challengeService from '../services/challengeService';
 import { getClubMemberLogs } from '../storage/clubStorage';
+import {
+  getCategoryIcon,
+  getTypeColor,
+  getTypeLabel,
+  getTypeLightColor,
+} from '../utils/workoutDisplay';
+import { formatMetric, calculateTotalMetrics } from '../utils/calculateMetrics';
+import {
+  calculateTitles,
+  calculateMission,
+  getTodaySquad,
+  generateTickerItems,
+} from '../utils/dashboardLogic';
+import { ChallengeWizard } from '../components/challenge/ChallengeWizard';
 import type {
   ClubDetail,
   WorkoutLog,
@@ -10,13 +24,13 @@ import type {
   ClubMemberWithUser,
 } from '../types';
 
-type TabType = 'feed' | 'challenge' | 'members';
+type TabType = 'dashboard' | 'challenge' | 'members';
 
 export const ClubDetailPage = () => {
   const { clubId } = useParams<{ clubId: string }>();
   const navigate = useNavigate();
 
-  const [tab, setTab] = useState<TabType>('feed');
+  const [tab, setTab] = useState<TabType>('dashboard');
   const [club, setClub] = useState<ClubDetail | null>(null);
   const [memberLogs, setMemberLogs] = useState<WorkoutLog[]>([]);
   const [challenges, setChallenges] = useState<ClubChallenge[]>([]);
@@ -66,7 +80,7 @@ export const ClubDetailPage = () => {
 
     try {
       switch (tab) {
-        case 'feed':
+        case 'dashboard':
           // Zero-Copy View: 클럽 멤버들의 공개 로그를 직접 조회
           const logs = await getClubMemberLogs(clubId);
           setMemberLogs(logs);
@@ -160,10 +174,10 @@ export const ClubDetailPage = () => {
       {/* Tabs */}
       <div className="mode-selector">
         <button
-          className={`mode-button ${tab === 'feed' ? 'active' : ''}`}
-          onClick={() => setTab('feed')}
+          className={`mode-button ${tab === 'dashboard' ? 'active' : ''}`}
+          onClick={() => setTab('dashboard')}
         >
-          피드
+          대시보드
         </button>
         <button
           className={`mode-button ${tab === 'challenge' ? 'active' : ''}`}
@@ -179,94 +193,40 @@ export const ClubDetailPage = () => {
         </button>
       </div>
 
-      {/* Feed Tab */}
-      {tab === 'feed' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {memberLogs.length === 0 ? (
-            <div className="empty-state">
-              <p>아직 공유된 운동이 없습니다.</p>
-              <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '8px' }}>
-                멤버들이 운동 기록을 저장하면 여기에 표시됩니다.
-              </p>
-            </div>
-          ) : (
-            memberLogs.map((log) => (
-              <div key={log.id} className="section">
-                {/* User Info Header */}
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    marginBottom: '12px',
-                  }}
-                >
-                  {log.userProfileImage ? (
-                    <img
-                      src={log.userProfileImage}
-                      alt={log.userDisplayName}
-                      style={{
-                        width: '32px',
-                        height: '32px',
-                        borderRadius: '50%',
-                        objectFit: 'cover',
-                      }}
-                    />
-                  ) : (
-                    <div
-                      className="profile-avatar"
-                      style={{ width: '32px', height: '32px', fontSize: '14px' }}
-                    >
-                      {(log.userDisplayName || '?')[0]}
-                    </div>
-                  )}
-                  <div>
-                    <div style={{ fontSize: '14px', fontWeight: '600' }}>
-                      {log.userDisplayName || '익명'}
-                    </div>
-                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                      {new Date(log.createdAt).toLocaleString('ko-KR')}
-                    </div>
-                  </div>
-                </div>
+      {/* Dashboard Tab */}
+      {tab === 'dashboard' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* Live Ticker */}
+          <LiveTicker members={memberLogs} />
 
-                {/* Workout Date */}
-                <div className="detail-date" style={{ marginBottom: '12px' }}>
-                  {log.date}
-                </div>
+          {/* Hall of Fame - Dynamic Titles */}
+          <HallOfFame members={memberLogs} />
 
-                {/* Workout Cards */}
-                <div className="workout-cards">
-                  {log.workouts.map((workout, idx) => (
-                    <div key={idx} className={`workout-card ${workout.type}`}>
-                      <div className="workout-name">{workout.name}</div>
-                      <div className="workout-details">
-                        {workout.distance_km && (
-                          <span className="distance">{workout.distance_km} km</span>
-                        )}
-                        {workout.pace && (
-                          <span className="pace">{workout.pace} /km</span>
-                        )}
-                        {workout.weight_kg && (
-                          <span className="weight">{workout.weight_kg} kg</span>
-                        )}
-                        {workout.sets && <span>{workout.sets} 세트</span>}
-                        {workout.reps && <span>{workout.reps} 회</span>}
-                        {workout.duration_min && <span>{workout.duration_min} 분</span>}
-                        {!workout.sets && !workout.reps && !workout.duration_min && !workout.weight_kg && !workout.distance_km && !workout.pace && (
-                          <span className="no-details">상세 정보 없음</span>
-                        )}
-                      </div>
-                      {workout.note && <div className="workout-note">{workout.note}</div>}
-                      <div className="workout-type-badge">{workout.type}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))
-          )}
+          {/* Daily Squad */}
+          <DailySquad members={memberLogs} />
+
+          {/* 리더보드 (기존 유지) */}
+          <LeaderboardSection
+            title="🏃 유산소 킹"
+            subtitle="평지 환산 거리 기준"
+            members={memberLogs}
+            metricType="cardio"
+          />
+          <LeaderboardSection
+            title="🏋️ 스트렝스 킹"
+            subtitle="총 볼륨 기준"
+            members={memberLogs}
+            metricType="strength"
+          />
+          <LeaderboardSection
+            title="🏂 슬로프 킹"
+            subtitle="런 수 기준"
+            members={memberLogs}
+            metricType="snowboard"
+          />
         </div>
       )}
+
 
       {/* Challenge Tab */}
       {tab === 'challenge' && (
@@ -367,9 +327,9 @@ export const ClubDetailPage = () => {
         </div>
       )}
 
-      {/* Create Challenge Modal */}
+      {/* Create Challenge Wizard */}
       {showCreateChallenge && (
-        <CreateChallengeModal
+        <ChallengeWizard
           clubId={clubId!}
           onClose={() => setShowCreateChallenge(false)}
           onSuccess={() => {
@@ -382,203 +342,560 @@ export const ClubDetailPage = () => {
   );
 };
 
-// Challenge Creation Modal Component
-const CreateChallengeModal = ({
-  clubId,
-  onClose,
-  onSuccess,
-}: {
-  clubId: string;
-  onClose: () => void;
-  onSuccess: () => void;
-}) => {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [challengeType, setChallengeType] = useState<'total_workouts' | 'total_volume' | 'total_duration' | 'total_distance'>('total_workouts');
-  const [targetValue, setTargetValue] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async () => {
-    if (!title.trim()) {
-      alert('챌린지 제목을 입력해주세요.');
-      return;
-    }
-    if (!targetValue || Number(targetValue) <= 0) {
-      alert('목표 값을 입력해주세요.');
-      return;
-    }
-    if (!startDate || !endDate) {
-      alert('시작일과 종료일을 입력해주세요.');
-      return;
-    }
+// ============================================
+// Gamified Dashboard Components
+// ============================================
 
-    setLoading(true);
-    try {
-      await challengeService.createChallenge({
-        club_id: clubId,
-        title: title.trim(),
-        description: description.trim() || undefined,
-        challenge_type: challengeType,
-        target_value: Number(targetValue),
-        start_date: startDate,
-        end_date: endDate,
-      });
-      alert('챌린지가 생성되었습니다!');
-      onSuccess();
-    } catch (error) {
-      alert(error instanceof Error ? error.message : '챌린지 생성에 실패했습니다.');
-    } finally {
-      setLoading(false);
-    }
+// Live Ticker - 실시간 활동 피드 (뉴스 티커 스타일)
+const LiveTicker = ({ members }: { members: WorkoutLog[] }) => {
+  const tickerItems = useMemo(() => generateTickerItems(members, 15), [members]);
+
+  if (tickerItems.length === 0) return null;
+
+  return (
+    <div
+      style={{
+        background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+        border: '2px solid #334155',
+        borderRadius: '12px',
+        padding: '16px',
+        overflow: 'hidden',
+        position: 'relative',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          marginBottom: '12px',
+        }}
+      >
+        <div style={{ fontSize: '20px' }}>📡</div>
+        <h3 style={{ fontSize: '16px', fontWeight: '700', margin: 0 }}>LIVE ACTIVITY</h3>
+      </div>
+
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px',
+          maxHeight: '200px',
+          overflowY: 'auto',
+        }}
+      >
+        {tickerItems.map((item) => (
+          <div
+            key={item.id}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              padding: '8px 12px',
+              background: 'rgba(255, 255, 255, 0.05)',
+              borderRadius: '8px',
+              fontSize: '14px',
+              borderLeft: '3px solid var(--primary-color)',
+            }}
+          >
+            <div style={{ fontSize: '18px' }}>{item.icon}</div>
+            <div style={{ flex: 1, color: '#e2e8f0' }}>{item.text}</div>
+            <div style={{ fontSize: '11px', color: '#94a3b8' }}>
+              {new Date(item.timestamp).toLocaleTimeString('ko-KR', {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+
+// Hall of Fame - 동적 타이틀 시스템
+const HallOfFame = ({ members }: { members: WorkoutLog[] }) => {
+  const titles = useMemo(() => calculateTitles(members), [members]);
+
+  if (titles.length === 0) {
+    return (
+      <div className="section">
+        <h3>🏆 명예의 전당</h3>
+        <div className="empty-state">
+          <p>아직 타이틀을 획득한 멤버가 없습니다.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const getTitleColor = (icon: string): string => {
+    if (icon === '🌅') return '#f97316'; // orange
+    if (icon === '🏋️') return '#ef4444'; // red
+    if (icon === '🏃') return '#3b82f6'; // blue
+    if (icon === '🏂') return '#8b5cf6'; // purple
+    if (icon === '⚡') return '#eab308'; // yellow
+    return '#64748b';
   };
 
   return (
     <div
       style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: 'rgba(0, 0, 0, 0.5)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000,
+        background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+        border: '2px solid #334155',
+        borderRadius: '12px',
+        padding: '20px',
       }}
-      onClick={onClose}
     >
+      <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '16px', color: '#e2e8f0' }}>
+        🏆 명예의 전당
+      </h3>
+
       <div
-        className="section"
         style={{
-          maxWidth: '500px',
-          width: '90%',
-          maxHeight: '80vh',
-          overflow: 'auto',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          gap: '12px',
         }}
-        onClick={(e) => e.stopPropagation()}
       >
-        <h3>챌린지 만들기</h3>
-
-        <div className="form-group" style={{ marginBottom: '16px' }}>
-          <label>제목 *</label>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="예: 11월 볼륨 챌린지"
-            maxLength={100}
+        {titles.map((title) => (
+          <div
+            key={title.userId + title.title}
             style={{
-              width: '100%',
-              padding: '12px',
-              fontSize: '16px',
-              border: '1px solid var(--border-color)',
-              borderRadius: '8px',
-              background: 'var(--input-bg)',
-            }}
-          />
-        </div>
-
-        <div className="form-group" style={{ marginBottom: '16px' }}>
-          <label>설명</label>
-          <textarea
-            className="text-input-area"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="챌린지에 대한 설명 (선택)"
-            rows={3}
-            maxLength={200}
-          />
-        </div>
-
-        <div className="form-group" style={{ marginBottom: '16px' }}>
-          <label>챌린지 타입 *</label>
-          <select
-            value={challengeType}
-            onChange={(e) => setChallengeType(e.target.value as any)}
-            style={{
-              width: '100%',
-              padding: '12px',
-              fontSize: '16px',
-              border: '1px solid var(--border-color)',
-              borderRadius: '8px',
-              background: 'var(--input-bg)',
+              background: `linear-gradient(135deg, ${getTitleColor(title.icon)}22 0%, ${getTitleColor(title.icon)}11 100%)`,
+              border: `2px solid ${getTitleColor(title.icon)}66`,
+              borderRadius: '12px',
+              padding: '16px',
+              position: 'relative',
+              overflow: 'hidden',
             }}
           >
-            <option value="total_workouts">총 운동 횟수</option>
-            <option value="total_volume">총 볼륨 (kg)</option>
-            <option value="total_duration">총 시간 (분)</option>
-            <option value="total_distance">총 거리 (km)</option>
-          </select>
-        </div>
+            {/* Title Badge */}
+            <div
+              style={{
+                position: 'absolute',
+                top: '8px',
+                right: '8px',
+                background: getTitleColor(title.icon),
+                color: 'white',
+                padding: '4px 12px',
+                borderRadius: '12px',
+                fontSize: '11px',
+                fontWeight: '700',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+            >
+              <span>{title.icon}</span>
+              <span>{title.title}</span>
+            </div>
 
-        <div className="form-group" style={{ marginBottom: '16px' }}>
-          <label>목표 값 *</label>
-          <input
-            type="number"
-            value={targetValue}
-            onChange={(e) => setTargetValue(e.target.value)}
-            placeholder="예: 1000"
-            min="1"
+            {/* User Info */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+              {title.profileImage ? (
+                <img
+                  src={title.profileImage}
+                  alt={title.displayName}
+                  style={{
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: '50%',
+                    objectFit: 'cover',
+                    border: `3px solid ${getTitleColor(title.icon)}`,
+                  }}
+                />
+              ) : (
+                <div
+                  className="profile-avatar"
+                  style={{
+                    width: '48px',
+                    height: '48px',
+                    fontSize: '20px',
+                    border: `3px solid ${getTitleColor(title.icon)}`,
+                  }}
+                >
+                  {title.displayName[0]}
+                </div>
+              )}
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '16px', fontWeight: '700', color: '#e2e8f0' }}>
+                  {title.displayName}
+                </div>
+              </div>
+            </div>
+
+            {/* Achievement Value */}
+            <div style={{ marginTop: '12px' }}>
+              <div
+                style={{
+                  fontSize: '28px',
+                  fontWeight: '700',
+                  color: getTitleColor(title.icon),
+                  marginBottom: '4px',
+                }}
+              >
+                {title.value}
+              </div>
+              <div style={{ fontSize: '13px', color: '#94a3b8' }}>{title.description}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// Daily Squad - 오늘의 출석부
+const DailySquad = ({ members }: { members: WorkoutLog[] }) => {
+  const squad = useMemo(() => getTodaySquad(members), [members]);
+
+  if (squad.length === 0) {
+    return (
+      <div className="section">
+        <h3>👥 오늘의 스쿼드</h3>
+        <div className="empty-state">
+          <p>오늘 운동한 멤버가 없습니다.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      style={{
+        background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+        border: '2px solid #334155',
+        borderRadius: '12px',
+        padding: '20px',
+      }}
+    >
+      <div style={{ marginBottom: '16px' }}>
+        <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#e2e8f0', marginBottom: '4px' }}>
+          👥 오늘의 스쿼드
+        </h3>
+        <p style={{ fontSize: '13px', color: '#94a3b8', margin: 0 }}>
+          {squad.length}명이 오늘 운동했습니다
+        </p>
+      </div>
+
+      <div
+        style={{
+          display: 'flex',
+          gap: '12px',
+          overflowX: 'auto',
+          paddingBottom: '8px',
+        }}
+      >
+        {squad.map((member) => (
+          <div
+            key={member.userId}
             style={{
-              width: '100%',
-              padding: '12px',
-              fontSize: '16px',
-              border: '1px solid var(--border-color)',
-              borderRadius: '8px',
-              background: 'var(--input-bg)',
+              minWidth: '160px',
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: '2px solid #334155',
+              borderRadius: '12px',
+              padding: '16px',
+              textAlign: 'center',
+              position: 'relative',
             }}
-          />
-        </div>
-
-        <div className="form-group" style={{ marginBottom: '16px' }}>
-          <label>시작일 *</label>
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '12px',
-              fontSize: '16px',
-              border: '1px solid var(--border-color)',
-              borderRadius: '8px',
-              background: 'var(--input-bg)',
-            }}
-          />
-        </div>
-
-        <div className="form-group" style={{ marginBottom: '16px' }}>
-          <label>종료일 *</label>
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '12px',
-              fontSize: '16px',
-              border: '1px solid var(--border-color)',
-              borderRadius: '8px',
-              background: 'var(--input-bg)',
-            }}
-          />
-        </div>
-
-        <div className="action-buttons">
-          <button className="cancel-button" onClick={onClose}>
-            취소
-          </button>
-          <button
-            className="primary-button"
-            onClick={handleSubmit}
-            disabled={loading}
           >
-            {loading ? '생성 중...' : '챌린지 만들기'}
-          </button>
+            {/* Activity Icon Badge */}
+            <div
+              style={{
+                position: 'absolute',
+                top: '8px',
+                right: '8px',
+                fontSize: '20px',
+              }}
+            >
+              {member.mainActivity}
+            </div>
+
+            {/* Profile */}
+            {member.profileImage ? (
+              <img
+                src={member.profileImage}
+                alt={member.displayName}
+                style={{
+                  width: '64px',
+                  height: '64px',
+                  borderRadius: '50%',
+                  objectFit: 'cover',
+                  marginBottom: '12px',
+                }}
+              />
+            ) : (
+              <div
+                className="profile-avatar"
+                style={{
+                  width: '64px',
+                  height: '64px',
+                  fontSize: '28px',
+                  margin: '0 auto 12px',
+                }}
+              >
+                {member.displayName[0]}
+              </div>
+            )}
+
+            {/* Name */}
+            <div
+              style={{
+                fontSize: '14px',
+                fontWeight: '700',
+                color: '#e2e8f0',
+                marginBottom: '8px',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              {member.displayName}
+            </div>
+
+            {/* Workout Count */}
+            <div
+              style={{
+                fontSize: '12px',
+                color: '#94a3b8',
+                marginBottom: '8px',
+              }}
+            >
+              {member.workoutCount}개 운동
+            </div>
+
+            {/* Memo Speech Bubble */}
+            {member.memo && (
+              <div
+                style={{
+                  background: 'rgba(139, 92, 246, 0.2)',
+                  border: '1px solid #8b5cf6',
+                  borderRadius: '8px',
+                  padding: '8px',
+                  fontSize: '12px',
+                  color: '#c4b5fd',
+                  marginTop: '8px',
+                  lineHeight: '1.4',
+                  maxHeight: '60px',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                💬 {member.memo}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// Club Stats Component
+const ClubStats = ({ members }: { members: WorkoutLog[] }) => {
+  const totalWorkouts = members.reduce((sum, log) => sum + log.workouts.length, 0);
+  const activeMembers = new Set(members.map((log) => log.userId)).size;
+  const totalLogs = members.length;
+
+  // 최근 7일 활동
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  const recentLogs = members.filter((log) => new Date(log.createdAt) >= sevenDaysAgo);
+  const weeklyWorkouts = recentLogs.reduce((sum, log) => sum + log.workouts.length, 0);
+
+  return (
+    <div className="section">
+      <h3>📊 클럽 통계</h3>
+      <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px', marginTop: '16px' }}>
+        <div className="stat-card">
+          <div className="stat-label">총 운동 수</div>
+          <div className="stat-value">{totalWorkouts}</div>
         </div>
+        <div className="stat-card">
+          <div className="stat-label">활성 멤버</div>
+          <div className="stat-value">{activeMembers}명</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">이번 주</div>
+          <div className="stat-value">{weeklyWorkouts} 운동</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">총 기록</div>
+          <div className="stat-value">{totalLogs}</div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Leaderboard Section Component
+const LeaderboardSection = ({
+  title,
+  subtitle,
+  members,
+  metricType,
+}: {
+  title: string;
+  subtitle: string;
+  members: WorkoutLog[];
+  metricType: 'cardio' | 'strength' | 'snowboard';
+}) => {
+  // 사용자별 집계
+  interface UserMetric {
+    userId: string;
+    displayName: string;
+    profileImage: string | null;
+    value: number;
+  }
+
+  const userMetrics = new Map<string, UserMetric>();
+
+  members.forEach((log) => {
+    if (!log.userId || !log.userDisplayName) return;
+
+    const existingMetric = userMetrics.get(log.userId) || {
+      userId: log.userId,
+      displayName: log.userDisplayName,
+      profileImage: log.userProfileImage || null,
+      value: 0,
+    };
+
+    log.workouts.forEach((workout) => {
+      let value = 0;
+
+      switch (metricType) {
+        case 'cardio':
+          if (workout.type === 'cardio' && workout.adjusted_dist_km) {
+            value = workout.adjusted_dist_km;
+          }
+          break;
+        case 'strength':
+          if (workout.type === 'strength' && workout.volume_kg) {
+            value = workout.volume_kg;
+          }
+          break;
+        case 'snowboard':
+          if (workout.category === 'snowboard' && workout.run_count) {
+            value = workout.run_count;
+          }
+          break;
+      }
+
+      existingMetric.value += value;
+    });
+
+    userMetrics.set(log.userId, existingMetric);
+  });
+
+  // 정렬 (내림차순)
+  const rankings = Array.from(userMetrics.values())
+    .filter((m) => m.value > 0)
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 10); // 상위 10명
+
+  if (rankings.length === 0) {
+    return (
+      <div className="section">
+        <h3>{title}</h3>
+        <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{subtitle}</p>
+        <div className="empty-state">
+          <p>아직 기록이 없습니다.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const formatValue = (value: number): string => {
+    switch (metricType) {
+      case 'cardio':
+        return formatMetric(value, 'distance');
+      case 'strength':
+        return formatMetric(value, 'volume');
+      case 'snowboard':
+        return formatMetric(value, 'count');
+      default:
+        return String(value);
+    }
+  };
+
+  return (
+    <div className="section">
+      <h3>{title}</h3>
+      <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
+        {subtitle}
+      </p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        {rankings.map((user, index) => (
+          <div
+            key={user.userId}
+            className="log-item"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              background: index < 3 ? 'var(--highlight-bg)' : undefined,
+            }}
+          >
+            {/* 순위 */}
+            <div
+              style={{
+                fontSize: '18px',
+                fontWeight: '700',
+                width: '30px',
+                textAlign: 'center',
+                color:
+                  index === 0
+                    ? '#FFD700'
+                    : index === 1
+                    ? '#C0C0C0'
+                    : index === 2
+                    ? '#CD7F32'
+                    : 'var(--text-secondary)',
+              }}
+            >
+              {index + 1}
+            </div>
+
+            {/* 프로필 */}
+            {user.profileImage ? (
+              <img
+                src={user.profileImage}
+                alt={user.displayName}
+                style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '50%',
+                  objectFit: 'cover',
+                }}
+              />
+            ) : (
+              <div
+                className="profile-avatar"
+                style={{ width: '40px', height: '40px', fontSize: '16px' }}
+              >
+                {user.displayName[0]}
+              </div>
+            )}
+
+            {/* 이름 */}
+            <div style={{ flex: 1, fontSize: '16px', fontWeight: '600' }}>
+              {user.displayName}
+            </div>
+
+            {/* 점수 */}
+            <div
+              style={{
+                fontSize: '18px',
+                fontWeight: '700',
+                color: 'var(--primary-color)',
+              }}
+            >
+              {formatValue(user.value)}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

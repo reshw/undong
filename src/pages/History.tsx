@@ -8,6 +8,12 @@ import { normalizeText } from '../features/normalize/normalizeText';
 import { parseWorkoutText } from '../features/parse/parseWorkoutText';
 import { parseWithGPT } from '../features/parse/parseWithGPT';
 import challengeService from '../services/challengeService';
+import {
+  getCategoryIcon,
+  getTypeColor,
+  getTypeLabel,
+  getTypeLightColor,
+} from '../utils/workoutDisplay';
 
 type AddMode = 'web-speech' | 'ai';
 type InputMode = 'voice' | 'text';
@@ -508,24 +514,57 @@ export const History = () => {
                 <p className="empty-message">운동 기록을 찾을 수 없습니다.</p>
               ) : (
                 <div className="workout-cards">
-                  {workouts.map((workout, idx) => (
-                    <div key={idx} className={`workout-card ${workout.type}`}>
-                      <div className="workout-name">{workout.name}</div>
-                      <div className="workout-details">
-                        {workout.distance_km && <span className="distance">{workout.distance_km} km</span>}
-                        {workout.pace && <span className="pace">{workout.pace} /km</span>}
-                        {workout.weight_kg && <span className="weight">{workout.weight_kg} kg</span>}
-                        {workout.sets && <span>{workout.sets} 세트</span>}
-                        {workout.reps && <span>{workout.reps} 회</span>}
-                        {workout.duration_min && <span>{workout.duration_min} 분</span>}
-                        {!workout.sets && !workout.reps && !workout.duration_min && !workout.weight_kg && !workout.distance_km && !workout.pace && (
-                          <span className="no-details">상세 정보 없음</span>
-                        )}
+                  {workouts.map((workout, idx) => {
+                    const categoryIcon = getCategoryIcon(workout.category);
+                    const typeColor = getTypeColor(workout.type);
+                    const typeLabel = getTypeLabel(workout.type);
+                    const typeLightColor = getTypeLightColor(workout.type);
+
+                    return (
+                      <div
+                        key={idx}
+                        style={{
+                          border: `2px solid ${typeColor}`,
+                          backgroundColor: typeLightColor,
+                          borderRadius: '8px',
+                          padding: '12px',
+                          position: 'relative',
+                          transition: 'all 0.2s ease',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                          <div style={{ fontSize: '20px' }}>{categoryIcon}</div>
+                          <div className="workout-name">{workout.name}</div>
+                          <div
+                            style={{
+                              display: 'inline-block',
+                              padding: '2px 8px',
+                              borderRadius: '4px',
+                              fontSize: '11px',
+                              fontWeight: '600',
+                              backgroundColor: typeColor,
+                              color: 'white',
+                              marginLeft: 'auto',
+                            }}
+                          >
+                            {typeLabel}
+                          </div>
+                        </div>
+                        <div className="workout-details">
+                          {workout.distance_km && <span className="distance">{workout.distance_km} km</span>}
+                          {workout.pace && <span className="pace">{workout.pace} /km</span>}
+                          {workout.weight_kg && <span className="weight">{workout.weight_kg} kg</span>}
+                          {workout.sets && <span>{workout.sets} 세트</span>}
+                          {workout.reps && <span>{workout.reps} 회</span>}
+                          {workout.duration_min && <span>{workout.duration_min} 분</span>}
+                          {!workout.sets && !workout.reps && !workout.duration_min && !workout.weight_kg && !workout.distance_km && !workout.pace && (
+                            <span className="no-details">상세 정보 없음</span>
+                          )}
+                        </div>
+                        {workout.note && <div className="workout-note">{workout.note}</div>}
                       </div>
-                      {workout.note && <div className="workout-note">{workout.note}</div>}
-                      <div className="workout-type-badge">{workout.type}</div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -606,24 +645,57 @@ export const History = () => {
           <div className="section">
             <h3>운동 기록 ({allWorkouts.length}개)</h3>
             <div className="workout-cards">
-              {allWorkouts.map((workout, idx) => (
-                <div key={idx} className={`workout-card ${workout.type}`}>
-                  <div className="workout-name">{workout.name}</div>
-                  <div className="workout-details">
-                    {workout.distance_km && <span className="distance">{workout.distance_km} km</span>}
-                    {workout.pace && <span className="pace">{workout.pace} /km</span>}
-                    {workout.weight_kg && <span className="weight">{workout.weight_kg} kg</span>}
-                    {workout.sets && <span>{workout.sets} 세트</span>}
-                    {workout.reps && <span>{workout.reps} 회</span>}
-                    {workout.duration_min && <span>{workout.duration_min} 분</span>}
-                    {!workout.sets && !workout.reps && !workout.duration_min && !workout.weight_kg && !workout.distance_km && !workout.pace && (
-                      <span className="no-details">상세 정보 없음</span>
-                    )}
+              {allWorkouts.map((workout, idx) => {
+                const categoryIcon = getCategoryIcon(workout.category);
+                const typeColor = getTypeColor(workout.type);
+                const typeLabel = getTypeLabel(workout.type);
+                const typeLightColor = getTypeLightColor(workout.type);
+
+                return (
+                  <div
+                    key={idx}
+                    style={{
+                      border: `2px solid ${typeColor}`,
+                      backgroundColor: typeLightColor,
+                      borderRadius: '8px',
+                      padding: '12px',
+                      position: 'relative',
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                      <div style={{ fontSize: '20px' }}>{categoryIcon}</div>
+                      <div className="workout-name">{workout.name}</div>
+                      <div
+                        style={{
+                          display: 'inline-block',
+                          padding: '2px 8px',
+                          borderRadius: '4px',
+                          fontSize: '11px',
+                          fontWeight: '600',
+                          backgroundColor: typeColor,
+                          color: 'white',
+                          marginLeft: 'auto',
+                        }}
+                      >
+                        {typeLabel}
+                      </div>
+                    </div>
+                    <div className="workout-details">
+                      {workout.distance_km && <span className="distance">{workout.distance_km} km</span>}
+                      {workout.pace && <span className="pace">{workout.pace} /km</span>}
+                      {workout.weight_kg && <span className="weight">{workout.weight_kg} kg</span>}
+                      {workout.sets && <span>{workout.sets} 세트</span>}
+                      {workout.reps && <span>{workout.reps} 회</span>}
+                      {workout.duration_min && <span>{workout.duration_min} 분</span>}
+                      {!workout.sets && !workout.reps && !workout.duration_min && !workout.weight_kg && !workout.distance_km && !workout.pace && (
+                        <span className="no-details">상세 정보 없음</span>
+                      )}
+                    </div>
+                    {workout.note && <div className="workout-note">{workout.note}</div>}
                   </div>
-                  {workout.note && <div className="workout-note">{workout.note}</div>}
-                  <div className="workout-type-badge">{workout.type}</div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
@@ -678,22 +750,55 @@ export const History = () => {
             <div className="section">
               <h3>운동 기록 ({selectedLog.workouts.length}개)</h3>
               <div className="workout-cards">
-                {selectedLog.workouts.map((workout, idx) => (
-                  <div key={idx} className={`workout-card ${workout.type}`}>
-                    <div className="workout-name">{workout.name}</div>
-                    <div className="workout-details">
-                      {workout.weight_kg && <span className="weight">{workout.weight_kg} kg</span>}
-                      {workout.sets && <span>{workout.sets} 세트</span>}
-                      {workout.reps && <span>{workout.reps} 회</span>}
-                      {workout.duration_min && <span>{workout.duration_min} 분</span>}
-                      {!workout.sets && !workout.reps && !workout.duration_min && !workout.weight_kg && (
-                        <span className="no-details">상세 정보 없음</span>
-                      )}
+                {selectedLog.workouts.map((workout, idx) => {
+                  const categoryIcon = getCategoryIcon(workout.category);
+                  const typeColor = getTypeColor(workout.type);
+                  const typeLabel = getTypeLabel(workout.type);
+                  const typeLightColor = getTypeLightColor(workout.type);
+
+                  return (
+                    <div
+                      key={idx}
+                      style={{
+                        border: `2px solid ${typeColor}`,
+                        backgroundColor: typeLightColor,
+                        borderRadius: '8px',
+                        padding: '12px',
+                        position: 'relative',
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                        <div style={{ fontSize: '20px' }}>{categoryIcon}</div>
+                        <div className="workout-name">{workout.name}</div>
+                        <div
+                          style={{
+                            display: 'inline-block',
+                            padding: '2px 8px',
+                            borderRadius: '4px',
+                            fontSize: '11px',
+                            fontWeight: '600',
+                            backgroundColor: typeColor,
+                            color: 'white',
+                            marginLeft: 'auto',
+                          }}
+                        >
+                          {typeLabel}
+                        </div>
+                      </div>
+                      <div className="workout-details">
+                        {workout.weight_kg && <span className="weight">{workout.weight_kg} kg</span>}
+                        {workout.sets && <span>{workout.sets} 세트</span>}
+                        {workout.reps && <span>{workout.reps} 회</span>}
+                        {workout.duration_min && <span>{workout.duration_min} 분</span>}
+                        {!workout.sets && !workout.reps && !workout.duration_min && !workout.weight_kg && (
+                          <span className="no-details">상세 정보 없음</span>
+                        )}
+                      </div>
+                      {workout.note && <div className="workout-note">{workout.note}</div>}
                     </div>
-                    {workout.note && <div className="workout-note">{workout.note}</div>}
-                    <div className="workout-type-badge">{workout.type}</div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
