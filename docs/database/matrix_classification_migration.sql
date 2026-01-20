@@ -24,15 +24,10 @@ CREATE INDEX IF NOT EXISTS idx_workouts_category ON workouts(category);
 COMMENT ON COLUMN workouts.category IS '운동 카테고리 (gym: 헬스장, snowboard: 스노보드, running: 러닝, sports: 구기/라켓, home: 홈트, other: 기타)';
 
 -- ============================================
--- 2. type 컬럼 제약조건 업데이트
+-- 2. 기존 CHECK 제약조건 삭제
 -- ============================================
 
--- 기존 CHECK 제약조건 삭제 (이름을 정확히 알아야 함, 시스템 생성 이름일 수 있음)
--- PostgreSQL에서 제약조건 이름 확인:
--- SELECT conname FROM pg_constraint WHERE conrelid = 'workouts'::regclass AND contype = 'c';
-
--- 임시로 제약조건을 삭제하고 다시 생성
--- (제약조건 이름이 시스템 생성이므로 동적으로 삭제)
+-- 기존 type 컬럼의 CHECK 제약조건 삭제
 DO $$
 DECLARE
   constraint_name text;
@@ -47,20 +42,12 @@ BEGIN
   -- 제약조건이 존재하면 삭제
   IF constraint_name IS NOT NULL THEN
     EXECUTE 'ALTER TABLE workouts DROP CONSTRAINT ' || constraint_name;
+    RAISE NOTICE 'Dropped constraint: %', constraint_name;
   END IF;
 END $$;
 
--- 새로운 type 제약조건 추가
-ALTER TABLE workouts
-ADD CONSTRAINT workouts_type_check CHECK (
-  type IN ('strength', 'cardio', 'skill', 'flexibility', 'unknown')
-);
-
--- 코멘트 업데이트
-COMMENT ON COLUMN workouts.type IS '트레이닝 타입 (strength: 근력, cardio: 심폐, skill: 기술, flexibility: 유연성, unknown: 미분류)';
-
 -- ============================================
--- 3. 기존 데이터 마이그레이션
+-- 3. 기존 데이터 마이그레이션 (제약조건 추가 전에 먼저!)
 -- ============================================
 
 -- 기존 type 값을 category와 type으로 분리
@@ -111,7 +98,20 @@ END
 WHERE category = 'other';
 
 -- ============================================
--- 4. 확인 쿼리
+-- 4. type 컬럼 제약조건 추가 (데이터 마이그레이션 후!)
+-- ============================================
+
+-- 새로운 type 제약조건 추가
+ALTER TABLE workouts
+ADD CONSTRAINT workouts_type_check CHECK (
+  type IN ('strength', 'cardio', 'skill', 'flexibility', 'unknown')
+);
+
+-- 코멘트 업데이트
+COMMENT ON COLUMN workouts.type IS '트레이닝 타입 (strength: 근력, cardio: 심폐, skill: 기술, flexibility: 유연성, unknown: 미분류)';
+
+-- ============================================
+-- 5. 확인 쿼리
 -- ============================================
 
 -- 카테고리별 운동 수 확인
