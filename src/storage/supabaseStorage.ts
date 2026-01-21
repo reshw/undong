@@ -216,6 +216,7 @@ export const getLogById = async (id: string): Promise<WorkoutLog | null> => {
       normalizedText: data.normalized_text || '',
       workouts: (data.workouts || []).map((w: any) => ({
         name: w.name,
+        category: w.category || 'gym',
         type: w.type,
         sets: w.sets,
         reps: w.reps,

@@ -70,7 +70,7 @@ export const getTypeLightColor = (type: WorkoutType): string => {
 
 // 운동 카드 스타일 생성 (인라인 스타일 객체)
 export const getWorkoutCardStyle = (
-  category: WorkoutCategory,
+  _category: WorkoutCategory,
   type: WorkoutType
 ): React.CSSProperties => {
   return {

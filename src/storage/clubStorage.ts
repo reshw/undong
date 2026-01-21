@@ -6,6 +6,7 @@ import type {
   ClubFeedWithDetails,
   ClubChallenge,
   ChallengeDetailWithContributors,
+  WorkoutLog,
 } from '../types';
 import { supabase } from '../lib/supabase';
 

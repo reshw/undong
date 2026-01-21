@@ -55,6 +55,7 @@ const findEarlyBird = (members: WorkoutLog[]): MemberTitle | null => {
 
   members.forEach((log) => {
     if (log.date !== today) return;
+    if (!log.userId || !log.userDisplayName) return;
 
     const createdTime = new Date(log.createdAt);
     const hour = createdTime.getHours();
@@ -62,8 +63,8 @@ const findEarlyBird = (members: WorkoutLog[]): MemberTitle | null => {
     if (hour >= 4 && hour < 7) {
       if (!earliest || createdTime.getTime() < earliest.time) {
         earliest = {
-          userId: log.userId!,
-          displayName: log.userDisplayName!,
+          userId: log.userId,
+          displayName: log.userDisplayName,
           profileImage: log.userProfileImage || null,
           time: createdTime.getTime(),
         };
@@ -73,11 +74,12 @@ const findEarlyBird = (members: WorkoutLog[]): MemberTitle | null => {
 
   if (!earliest) return null;
 
-  const time = new Date(earliest.time);
+  const { userId, displayName, profileImage, time: timestamp } = earliest;
+  const time = new Date(timestamp);
   return {
-    userId: earliest.userId,
-    displayName: earliest.displayName,
-    profileImage: earliest.profileImage,
+    userId,
+    displayName,
+    profileImage,
     title: '새벽 트레이너',
     icon: '🌅',
     value: `${time.getHours()}:${String(time.getMinutes()).padStart(2, '0')}`,
@@ -89,10 +91,10 @@ const findVolumeKing = (members: WorkoutLog[]): MemberTitle | null => {
   const userVolumes = new Map<string, { displayName: string; profileImage: string | null; volume: number }>();
 
   members.forEach((log) => {
-    if (!log.userId) return;
+    if (!log.userId || !log.userDisplayName) return;
 
     const existing = userVolumes.get(log.userId) || {
-      displayName: log.userDisplayName!,
+      displayName: log.userDisplayName,
       profileImage: log.userProfileImage || null,
       volume: 0,
     };
@@ -130,10 +132,10 @@ const findDistanceKing = (members: WorkoutLog[]): MemberTitle | null => {
   const userDistances = new Map<string, { displayName: string; profileImage: string | null; distance: number }>();
 
   members.forEach((log) => {
-    if (!log.userId) return;
+    if (!log.userId || !log.userDisplayName) return;
 
     const existing = userDistances.get(log.userId) || {
-      displayName: log.userDisplayName!,
+      displayName: log.userDisplayName,
       profileImage: log.userProfileImage || null,
       distance: 0,
     };
@@ -170,10 +172,10 @@ const findRunKing = (members: WorkoutLog[]): MemberTitle | null => {
   const userRuns = new Map<string, { displayName: string; profileImage: string | null; runs: number }>();
 
   members.forEach((log) => {
-    if (!log.userId) return;
+    if (!log.userId || !log.userDisplayName) return;
 
     const existing = userRuns.get(log.userId) || {
-      displayName: log.userDisplayName!,
+      displayName: log.userDisplayName,
       profileImage: log.userProfileImage || null,
       runs: 0,
     };
@@ -213,11 +215,11 @@ const findStreakKing = (members: WorkoutLog[]): MemberTitle | null => {
   const userFrequency = new Map<string, { displayName: string; profileImage: string | null; count: number }>();
 
   members.forEach((log) => {
-    if (!log.userId) return;
+    if (!log.userId || !log.userDisplayName) return;
     if (new Date(log.createdAt) < sevenDaysAgo) return;
 
     const existing = userFrequency.get(log.userId) || {
-      displayName: log.userDisplayName!,
+      displayName: log.userDisplayName,
       profileImage: log.userProfileImage || null,
       count: 0,
     };
@@ -358,11 +360,11 @@ export const getTodaySquad = (members: WorkoutLog[]): SquadMember[] => {
 
   members.forEach((log) => {
     if (log.date !== today) return;
-    if (!log.userId) return;
+    if (!log.userId || !log.userDisplayName) return;
 
     const existing = squadMap.get(log.userId) || {
       userId: log.userId,
-      displayName: log.userDisplayName!,
+      displayName: log.userDisplayName,
       profileImage: log.userProfileImage || null,
       mainActivity: '💪',
       memo: log.memo || null,

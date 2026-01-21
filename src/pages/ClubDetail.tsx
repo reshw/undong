@@ -3,16 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import clubService from '../services/clubService';
 import challengeService from '../services/challengeService';
 import { getClubMemberLogs } from '../storage/clubStorage';
-import {
-  getCategoryIcon,
-  getTypeColor,
-  getTypeLabel,
-  getTypeLightColor,
-} from '../utils/workoutDisplay';
-import { formatMetric, calculateTotalMetrics } from '../utils/calculateMetrics';
+import { formatMetric } from '../utils/calculateMetrics';
 import {
   calculateTitles,
-  calculateMission,
   getTodaySquad,
   generateTickerItems,
 } from '../utils/dashboardLogic';
@@ -688,43 +681,6 @@ const DailySquad = ({ members }: { members: WorkoutLog[] }) => {
             )}
           </div>
         ))}
-      </div>
-    </div>
-  );
-};
-
-// Club Stats Component
-const ClubStats = ({ members }: { members: WorkoutLog[] }) => {
-  const totalWorkouts = members.reduce((sum, log) => sum + log.workouts.length, 0);
-  const activeMembers = new Set(members.map((log) => log.userId)).size;
-  const totalLogs = members.length;
-
-  // 최근 7일 활동
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-  const recentLogs = members.filter((log) => new Date(log.createdAt) >= sevenDaysAgo);
-  const weeklyWorkouts = recentLogs.reduce((sum, log) => sum + log.workouts.length, 0);
-
-  return (
-    <div className="section">
-      <h3>📊 클럽 통계</h3>
-      <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px', marginTop: '16px' }}>
-        <div className="stat-card">
-          <div className="stat-label">총 운동 수</div>
-          <div className="stat-value">{totalWorkouts}</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-label">활성 멤버</div>
-          <div className="stat-value">{activeMembers}명</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-label">이번 주</div>
-          <div className="stat-value">{weeklyWorkouts} 운동</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-label">총 기록</div>
-          <div className="stat-value">{totalLogs}</div>
-        </div>
       </div>
     </div>
   );
