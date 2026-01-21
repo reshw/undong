@@ -120,7 +120,7 @@ export const ChallengeWizard = ({ clubId, onClose, onSuccess }: ChallengeWizardP
     >
       <div
         style={{
-          background: 'var(--bg-secondary)',
+          background: 'var(--card-bg)',
           borderRadius: '16px',
           maxWidth: '900px',
           width: '100%',
@@ -259,7 +259,7 @@ const Step1ThemeSelect = ({ selectedTheme, onSelectTheme, onApplyTemplate }: Ste
             key={t.id}
             onClick={() => onSelectTheme(t.id)}
             style={{
-              background: selectedTheme === t.id ? `${t.color}22` : 'var(--bg-primary)',
+              background: selectedTheme === t.id ? `${t.color}22` : 'var(--input-bg)',
               border: `2px solid ${selectedTheme === t.id ? t.color : 'var(--border-color)'}`,
               borderRadius: '12px',
               padding: '20px',
@@ -286,7 +286,7 @@ const Step1ThemeSelect = ({ selectedTheme, onSelectTheme, onApplyTemplate }: Ste
               key={template.id}
               onClick={() => onApplyTemplate(template)}
               style={{
-                background: 'var(--bg-primary)',
+                background: 'var(--input-bg)',
                 border: '1px solid var(--border-color)',
                 borderRadius: '8px',
                 padding: '16px',
@@ -555,7 +555,7 @@ const Step2RulesConfig = ({ theme, rules, onUpdateRules, onNext, onBack }: Step2
           <div
             style={{
               padding: '12px 16px',
-              background: 'var(--bg-primary)',
+              background: 'var(--input-bg)',
               border: '1px solid var(--border-color)',
               borderRadius: '8px',
               fontSize: '16px',
@@ -577,7 +577,7 @@ const Step2RulesConfig = ({ theme, rules, onUpdateRules, onNext, onBack }: Step2
                 key={guide.value}
                 style={{
                   padding: '8px 12px',
-                  background: 'var(--bg-primary)',
+                  background: 'var(--input-bg)',
                   borderRadius: '6px',
                   marginBottom: '6px',
                   display: 'flex',

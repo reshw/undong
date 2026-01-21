@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import clubService from '../services/clubService';
 import challengeService from '../services/challengeService';
@@ -311,7 +311,16 @@ export const ClubDetailPage = () => {
           {(myRole === 'owner' || myRole === 'admin') && (
             <button
               className="primary-button"
-              onClick={() => setShowCreateChallenge(true)}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setShowCreateChallenge(true);
+              }}
+              style={{
+                cursor: 'pointer',
+                pointerEvents: 'auto',
+                zIndex: 1,
+              }}
             >
               + 챌린지 만들기
             </button>
@@ -681,6 +690,43 @@ const HallOfFame = ({ members }: { members: WorkoutLog[] }) => {
 
   const badges = useMemo(() => calculateHofBadges(members, currentUserId), [members, currentUserId]);
 
+  // Mouse drag scroll for desktop
+  const carouselRef = useRef<HTMLDivElement>(null);
+  const isDragging = useRef(false);
+  const startX = useRef(0);
+  const scrollLeft = useRef(0);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!carouselRef.current) return;
+    isDragging.current = true;
+    startX.current = e.pageX - carouselRef.current.offsetLeft;
+    scrollLeft.current = carouselRef.current.scrollLeft;
+    carouselRef.current.style.cursor = 'grabbing';
+    carouselRef.current.style.userSelect = 'none';
+  };
+
+  const handleMouseLeave = () => {
+    isDragging.current = false;
+    if (carouselRef.current) {
+      carouselRef.current.style.cursor = 'grab';
+    }
+  };
+
+  const handleMouseUp = () => {
+    isDragging.current = false;
+    if (carouselRef.current) {
+      carouselRef.current.style.cursor = 'grab';
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging.current || !carouselRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - carouselRef.current.offsetLeft;
+    const walk = (x - startX.current) * 2; // Scroll speed multiplier
+    carouselRef.current.scrollLeft = scrollLeft.current - walk;
+  };
+
   if (badges.length === 0) {
     return (
       <div className="section">
@@ -730,12 +776,18 @@ const HallOfFame = ({ members }: { members: WorkoutLog[] }) => {
 
       {/* Carousel Container with Snap Scroll */}
       <div
+        ref={carouselRef}
+        onMouseDown={handleMouseDown}
+        onMouseLeave={handleMouseLeave}
+        onMouseUp={handleMouseUp}
+        onMouseMove={handleMouseMove}
         style={{
           display: 'flex',
           gap: '16px',
           overflowX: 'auto',
           scrollSnapType: 'x mandatory',
           paddingBottom: '8px',
+          cursor: 'grab',
           // Hide scrollbar but keep functionality
           scrollbarWidth: 'none',
           msOverflowStyle: 'none',
@@ -1144,13 +1196,41 @@ const LeaderboardSection = ({
 
       switch (metricType) {
         case 'cardio':
-          if (workout.type === 'cardio' && workout.adjusted_dist_km) {
-            value = workout.adjusted_dist_km;
+          // Real-time calculation fallback for undefined adjusted_dist_km (legacy data)
+          let adjustedDist = workout.adjusted_dist_km;
+          if (!adjustedDist && workout.type === 'cardio') {
+            // Distance-based calculation
+            if (workout.distance_km) {
+              adjustedDist = workout.distance_km;
+              // Incline adjustment
+              if (workout.incline_percent) {
+                adjustedDist += workout.distance_km * workout.incline_percent * 0.1;
+              }
+              // Resistance level adjustment
+              if (workout.resistance_level) {
+                adjustedDist *= 1 + workout.resistance_level * 0.05;
+              }
+            }
+            // Time-based estimation (when no distance)
+            else if (workout.duration_min) {
+              adjustedDist = (workout.duration_min / 60) * 10; // 1 hour = 10km baseline
+              if (workout.resistance_level) {
+                adjustedDist *= 1 + workout.resistance_level * 0.05;
+              }
+            }
+          }
+          if (adjustedDist) {
+            value = adjustedDist;
           }
           break;
         case 'strength':
-          if (workout.type === 'strength' && workout.volume_kg) {
-            value = workout.volume_kg;
+          // Real-time calculation fallback for undefined volume_kg (legacy data)
+          let volumeKg = workout.volume_kg;
+          if (!volumeKg && workout.type === 'strength' && workout.sets && workout.reps && workout.weight_kg) {
+            volumeKg = workout.sets * workout.reps * workout.weight_kg;
+          }
+          if ((workout.type === 'strength' || ['gym', 'home'].includes(workout.category)) && volumeKg) {
+            value = volumeKg;
           }
           break;
         case 'snowboard':
