@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getAllLogs } from '../storage/supabaseStorage';
 import type { WorkoutLog } from '../types';
+import { calculateAdjustedDistance } from '../features/parse/normalizeCardio';
 
 interface MonthlyStats {
   year: number;
@@ -41,26 +42,7 @@ export const Dashboard = () => {
   };
 
   // 유산소 거리 계산 (트레드밀 100%, 사이클 40%, 로잉 60%)
-  const calculateCardioDistance = (workoutName: string, duration: number): number => {
-    const name = workoutName.toLowerCase();
-
-    // 기본 속도 가정 (km/h)
-    let baseSpeed = 0;
-    let adjustment = 1.0;
-
-    if (name.includes('트레드밀') || name.includes('러닝') || name.includes('런닝')) {
-      baseSpeed = 10; // 10 km/h
-      adjustment = 1.0; // 100%
-    } else if (name.includes('사이클') || name.includes('자전거')) {
-      baseSpeed = 25; // 25 km/h
-      adjustment = 0.4; // 40%
-    } else if (name.includes('로잉') || name.includes('rowing')) {
-      baseSpeed = 12; // 12 km/h
-      adjustment = 0.6; // 60%
-    }
-
-    return (baseSpeed * (duration / 60)) * adjustment;
-  };
+  // REMOVED: calculateCardioDistance - now using calculateAdjustedDistance from normalizeCardio.ts
 
   // 월간 통계 계산
   const calculateMonthlyStats = (): MonthlyStats => {
@@ -103,17 +85,24 @@ export const Dashboard = () => {
             stats.snowboardDays.add(log.date);
           }
 
-          // 유산소 거리 및 시간 계산
+          // 유산소 거리 및 시간 계산 (환산 비율 적용)
           if (workout.type === 'cardio') {
-            // distance_km이 있으면 직접 사용, 없으면 duration_min으로 계산
-            let distance = 0;
-            if (workout.distance_km) {
-              distance = workout.distance_km;
-            } else if (workout.duration_min) {
-              distance = calculateCardioDistance(workout.name, workout.duration_min);
+            // 1. 기본 거리 확보 (인클라인 보정 or 원본)
+            let baseDistance = workout.adjusted_dist_km ?? workout.distance_km ?? null;
+
+            // 2. 거리가 없고 시간만 있으면 기본 속도로 추정 (10 km/h)
+            if (!baseDistance && workout.duration_min) {
+              baseDistance = (workout.duration_min / 60) * 10;
             }
 
-            stats.totalDistance += distance;
+            // 3. 카테고리별 환산 비율 적용
+            const adjustedDistance = calculateAdjustedDistance(
+              workout.distance_km,
+              workout.adjusted_dist_km,
+              workout.name
+            );
+
+            stats.totalDistance += adjustedDistance;
 
             if (workout.duration_min) {
               stats.totalCardioMinutes += workout.duration_min;

@@ -39,7 +39,7 @@ export interface Workout {
   resistance_level?: number | null; // 저항 레벨 (사이클, 로잉 등)
 
   // Type별 전용 비교 지표 (리더보드용)
-  adjusted_dist_km?: number | null; // 🏃 카디오: 평지 환산 거리 (인클라인 보정)
+  adjusted_dist_km?: number | null; // 🏃 카디오: 평지 환산 거리 (인클라인 보정) - DEPRECATED, 집계 시 계산
   volume_kg?: number | null; // 🏋️ 근력: 총 볼륨 (무게 * 세트 * 횟수)
   run_count?: number | null; // 🏂 스킬/스노보드: 런 수 / 시도 횟수
 

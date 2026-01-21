@@ -2,18 +2,12 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import clubService from '../services/clubService';
 import challengeService from '../services/challengeService';
-import { getClubMemberLogs, updateDashboardConfig } from '../storage/clubStorage';
+import { getClubDashboard, updateDashboardConfig, type ClubDashboardData } from '../storage/clubStorage';
 import { formatMetric } from '../utils/calculateMetrics';
-import {
-  calculateHofBadges,
-  getSmartSquad,
-  generateTickerItems,
-} from '../utils/dashboardLogic';
 import type { HofBadge } from '../utils/dashboardLogic';
 import { ChallengeWizard } from '../components/challenge/ChallengeWizard';
 import type {
   ClubDetail,
-  WorkoutLog,
   ClubChallenge,
   ClubMemberWithUser,
   DashboardWidget,
@@ -38,7 +32,7 @@ export const ClubDetailPage = () => {
 
   const [tab, setTab] = useState<TabType>('dashboard');
   const [club, setClub] = useState<ClubDetail | null>(null);
-  const [memberLogs, setMemberLogs] = useState<WorkoutLog[]>([]);
+  const [dashboardData, setDashboardData] = useState<ClubDashboardData | null>(null);
   const [challenges, setChallenges] = useState<ClubChallenge[]>([]);
   const [members, setMembers] = useState<ClubMemberWithUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -99,9 +93,9 @@ export const ClubDetailPage = () => {
     try {
       switch (tab) {
         case 'dashboard':
-          // Zero-Copy View: 클럽 멤버들의 공개 로그를 직접 조회
-          const logs = await getClubMemberLogs(clubId);
-          setMemberLogs(logs);
+          // Server-side aggregation: DB에서 집계된 대시보드 데이터 조회
+          const data = await getClubDashboard(clubId);
+          setDashboardData(data);
           break;
         case 'challenge':
           const challengeData = await challengeService.getActiveChallenges(clubId);
@@ -298,7 +292,7 @@ export const ClubDetailPage = () => {
                 editMode={editMode}
                 onToggleVisibility={handleToggleWidgetVisibility}
                 onMove={handleMoveWidget}
-                memberLogs={memberLogs}
+                dashboardData={dashboardData}
               />
             ))}
         </div>
@@ -438,7 +432,7 @@ interface WidgetWrapperProps {
   editMode: boolean;
   onToggleVisibility: (widgetId: string) => void;
   onMove: (widgetId: string, direction: 'up' | 'down') => void;
-  memberLogs: WorkoutLog[];
+  dashboardData: ClubDashboardData | null;
 }
 
 const DashboardWidgetWrapper = ({
@@ -446,7 +440,7 @@ const DashboardWidgetWrapper = ({
   editMode,
   onToggleVisibility,
   onMove,
-  memberLogs,
+  dashboardData,
 }: WidgetWrapperProps) => {
   const getWidgetTitle = () => {
     switch (widget.type) {
@@ -468,13 +462,15 @@ const DashboardWidgetWrapper = ({
   };
 
   const renderWidget = () => {
+    if (!dashboardData) return <div>로딩 중...</div>;
+
     switch (widget.type) {
       case 'live_ticker':
-        return <LiveTicker members={memberLogs} />;
+        return <LiveTicker badges={dashboardData.badges} squad={dashboardData.squad} />;
       case 'hall_of_fame':
-        return <HallOfFame members={memberLogs} />;
+        return <HallOfFame badges={dashboardData.badges} />;
       case 'daily_squad':
-        return <DailySquad members={memberLogs} />;
+        return <DailySquad squad={dashboardData.squad} />;
       case 'leaderboard':
         const metricType = widget.config?.metricType as 'cardio' | 'strength' | 'snowboard';
         let title = '';
@@ -493,7 +489,7 @@ const DashboardWidgetWrapper = ({
           <LeaderboardSection
             title={title}
             subtitle={subtitle}
-            members={memberLogs}
+            rankings={dashboardData.leaderboards[metricType]}
             metricType={metricType}
           />
         );
@@ -607,8 +603,33 @@ const DashboardWidgetWrapper = ({
 // ============================================
 
 // Live Ticker - 실시간 활동 피드 (뉴스 티커 스타일)
-const LiveTicker = ({ members }: { members: WorkoutLog[] }) => {
-  const tickerItems = useMemo(() => generateTickerItems(members, 15), [members]);
+const LiveTicker = ({ badges, squad }: { badges: Array<any>; squad: Array<any> }) => {
+  // 간단한 티커 아이템 생성 (배지 + 스쿼드 활동)
+  const tickerItems = useMemo(() => {
+    const items: Array<{ id: string; icon: string; text: string; timestamp: number }> = [];
+
+    // 배지 티커 (최근 3개)
+    badges.slice(0, 3).forEach((badge, index) => {
+      items.push({
+        id: `badge-${badge.userId}-${badge.title}-${index}`,
+        icon: badge.icon,
+        text: `${badge.userName}님이 ${badge.title} 배지 획득!`,
+        timestamp: Date.now(),
+      });
+    });
+
+    // 스쿼드 티커 (최근 5명)
+    squad.slice(0, 5).forEach((member) => {
+      items.push({
+        id: `squad-${member.userId}`,
+        icon: member.activityType === 'today' ? '🔥' : '⚡',
+        text: `${member.displayName}님이 ${member.mainActivity} 완료!`,
+        timestamp: Date.now(),
+      });
+    });
+
+    return items;
+  }, [badges, squad]);
 
   if (tickerItems.length === 0) return null;
 
@@ -675,20 +696,7 @@ const LiveTicker = ({ members }: { members: WorkoutLog[] }) => {
 
 
 // Hall of Fame Carousel - 배지 시스템
-const HallOfFame = ({ members }: { members: WorkoutLog[] }) => {
-  // Get current user ID
-  const currentUserId = useMemo(() => {
-    const userStr = localStorage.getItem('current_user');
-    if (!userStr) return undefined;
-    try {
-      const user = JSON.parse(userStr);
-      return user.id;
-    } catch {
-      return undefined;
-    }
-  }, []);
-
-  const badges = useMemo(() => calculateHofBadges(members, currentUserId), [members, currentUserId]);
+const HallOfFame = ({ badges }: { badges: Array<any> }) => {
 
   // Mouse drag scroll for desktop
   const carouselRef = useRef<HTMLDivElement>(null);
@@ -794,12 +802,12 @@ const HallOfFame = ({ members }: { members: WorkoutLog[] }) => {
         }}
         className="hall-of-fame-carousel"
       >
-        {badges.map((badge) => {
+        {badges.map((badge, index) => {
           const color = getBadgeColor(badge.type);
 
           return (
             <div
-              key={badge.badgeId}
+              key={`${badge.userId}-${badge.title}-${index}`}
               style={{
                 minWidth: '280px',
                 maxWidth: '280px',
@@ -934,8 +942,7 @@ const HallOfFame = ({ members }: { members: WorkoutLog[] }) => {
 };
 
 // Smart Active Squad - 오늘 + 어제 운동한 멤버 표시
-const DailySquad = ({ members }: { members: WorkoutLog[] }) => {
-  const squad = useMemo(() => getSmartSquad(members), [members]);
+const DailySquad = ({ squad }: { squad: Array<any> }) => {
 
   if (squad.length === 0) {
     return (
@@ -1163,94 +1170,14 @@ const DailySquad = ({ members }: { members: WorkoutLog[] }) => {
 const LeaderboardSection = ({
   title,
   subtitle,
-  members,
+  rankings,
   metricType,
 }: {
   title: string;
   subtitle: string;
-  members: WorkoutLog[];
+  rankings: Array<{ userId: string; displayName: string; profileImage: string | null; value: number }>;
   metricType: 'cardio' | 'strength' | 'snowboard';
 }) => {
-  // 사용자별 집계
-  interface UserMetric {
-    userId: string;
-    displayName: string;
-    profileImage: string | null;
-    value: number;
-  }
-
-  const userMetrics = new Map<string, UserMetric>();
-
-  members.forEach((log) => {
-    if (!log.userId || !log.userDisplayName) return;
-
-    const existingMetric = userMetrics.get(log.userId) || {
-      userId: log.userId,
-      displayName: log.userDisplayName,
-      profileImage: log.userProfileImage || null,
-      value: 0,
-    };
-
-    log.workouts.forEach((workout) => {
-      let value = 0;
-
-      switch (metricType) {
-        case 'cardio':
-          // Real-time calculation fallback for undefined adjusted_dist_km (legacy data)
-          let adjustedDist = workout.adjusted_dist_km;
-          if (!adjustedDist && workout.type === 'cardio') {
-            // Distance-based calculation
-            if (workout.distance_km) {
-              adjustedDist = workout.distance_km;
-              // Incline adjustment
-              if (workout.incline_percent) {
-                adjustedDist += workout.distance_km * workout.incline_percent * 0.1;
-              }
-              // Resistance level adjustment
-              if (workout.resistance_level) {
-                adjustedDist *= 1 + workout.resistance_level * 0.05;
-              }
-            }
-            // Time-based estimation (when no distance)
-            else if (workout.duration_min) {
-              adjustedDist = (workout.duration_min / 60) * 10; // 1 hour = 10km baseline
-              if (workout.resistance_level) {
-                adjustedDist *= 1 + workout.resistance_level * 0.05;
-              }
-            }
-          }
-          if (adjustedDist) {
-            value = adjustedDist;
-          }
-          break;
-        case 'strength':
-          // Real-time calculation fallback for undefined volume_kg (legacy data)
-          let volumeKg = workout.volume_kg;
-          if (!volumeKg && workout.type === 'strength' && workout.sets && workout.reps && workout.weight_kg) {
-            volumeKg = workout.sets * workout.reps * workout.weight_kg;
-          }
-          if ((workout.type === 'strength' || ['gym', 'home'].includes(workout.category)) && volumeKg) {
-            value = volumeKg;
-          }
-          break;
-        case 'snowboard':
-          if (workout.category === 'snowboard' && workout.run_count) {
-            value = workout.run_count;
-          }
-          break;
-      }
-
-      existingMetric.value += value;
-    });
-
-    userMetrics.set(log.userId, existingMetric);
-  });
-
-  // 정렬 (내림차순)
-  const rankings = Array.from(userMetrics.values())
-    .filter((m) => m.value > 0)
-    .sort((a, b) => b.value - a.value)
-    .slice(0, 10); // 상위 10명
 
   if (rankings.length === 0) {
     return (

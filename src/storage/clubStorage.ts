@@ -8,7 +8,18 @@ import type {
   ChallengeDetailWithContributors,
   WorkoutLog,
 } from '../types';
+import type { HofBadge, SquadMember } from '../utils/dashboardLogic';
 import { supabase } from '../lib/supabase';
+
+export interface ClubDashboardData {
+  badges: HofBadge[];
+  squad: SquadMember[];
+  leaderboards: {
+    cardio: Array<{ userId: string; displayName: string; profileImage: string | null; value: number }>;
+    strength: Array<{ userId: string; displayName: string; profileImage: string | null; value: number }>;
+    snowboard: Array<{ userId: string; displayName: string; profileImage: string | null; value: number }>;
+  };
+}
 
 // Get current user ID from localStorage
 const getCurrentUserId = (): string => {
@@ -493,21 +504,21 @@ export const createChallenge = async (data: {
     const userId = getCurrentUserId();
 
     const { data: challenge, error } = await supabase
-      .from('club_challenges')
+      .from('challenges')
       .insert({
+        scope: 'club',
         club_id: data.club_id,
         title: data.title,
         description: data.description,
-        rules: data.rules, // JSONB 컬럼에 저장
-        target_value: data.rules.goal_value, // 역호환성을 위해 유지
+        rules: data.rules,
+        goal_metric: 'custom',
+        goal_value: data.rules.goal_value,
+        current_value: 0,
         start_date: data.start_date,
         end_date: data.end_date,
         theme_color: data.theme_color,
-        created_by: userId,
-        // 기본값 (constraint가 'custom'을 허용하지 않으면 'total_workouts' 사용)
-        challenge_type: 'total_workouts', // rules JSONB가 실제 로직을 결정
-        current_value: 0,
         status: 'active',
+        created_by: userId,
       })
       .select()
       .single();
@@ -747,6 +758,37 @@ export const deleteChallenge = async (challengeId: string): Promise<void> => {
 };
 
 // ============================================
+// Club Dashboard (Server-Side Aggregation)
+// ============================================
+
+/**
+ * 클럽 대시보드 데이터 조회 (DB에서 집계)
+ * 배지, 스쿼드, 리더보드를 DB Function에서 계산하여 반환
+ */
+export const getClubDashboard = async (clubId: string): Promise<ClubDashboardData> => {
+  try {
+    const userStr = localStorage.getItem('current_user');
+    const currentUserId = userStr ? JSON.parse(userStr).id : null;
+
+    const { data, error } = await supabase.rpc('get_club_dashboard', {
+      p_club_id: clubId,
+      p_current_user_id: currentUserId,
+    });
+
+    if (error) throw error;
+
+    return {
+      badges: data.badges || [],
+      squad: data.squad || [],
+      leaderboards: data.leaderboards || { cardio: [], strength: [], snowboard: [] },
+    };
+  } catch (error) {
+    console.error('클럽 대시보드 조회 실패:', error);
+    throw new Error('클럽 대시보드를 불러오는데 실패했습니다.');
+  }
+};
+
+// ============================================
 // Club Member Workout Logs (Zero-Copy View Architecture)
 // ============================================
 
@@ -754,6 +796,8 @@ export const deleteChallenge = async (challengeId: string): Promise<void> => {
  * 클럽 멤버들의 공개 운동 로그 조회
  * Zero-Copy View Architecture: club_feeds 테이블을 사용하지 않고,
  * RLS를 통해 workout_logs를 직접 조회
+ *
+ * @deprecated 대시보드는 getClubDashboard() 사용 권장
  */
 export const getClubMemberLogs = async (
   clubId: string,
