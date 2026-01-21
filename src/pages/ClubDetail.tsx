@@ -2,22 +2,35 @@ import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import clubService from '../services/clubService';
 import challengeService from '../services/challengeService';
-import { getClubMemberLogs } from '../storage/clubStorage';
+import { getClubMemberLogs, updateDashboardConfig } from '../storage/clubStorage';
 import { formatMetric } from '../utils/calculateMetrics';
 import {
-  calculateTitles,
-  getTodaySquad,
+  calculateHofBadges,
+  getSmartSquad,
   generateTickerItems,
 } from '../utils/dashboardLogic';
+import type { HofBadge } from '../utils/dashboardLogic';
 import { ChallengeWizard } from '../components/challenge/ChallengeWizard';
 import type {
   ClubDetail,
   WorkoutLog,
   ClubChallenge,
   ClubMemberWithUser,
+  DashboardWidget,
+  DashboardConfig,
 } from '../types';
 
 type TabType = 'dashboard' | 'challenge' | 'members';
+
+// Default widget configuration
+const DEFAULT_WIDGETS: DashboardWidget[] = [
+  { id: 'live_ticker', type: 'live_ticker', visible: true, order: 0 },
+  { id: 'hall_of_fame', type: 'hall_of_fame', visible: true, order: 1 },
+  { id: 'daily_squad', type: 'daily_squad', visible: true, order: 2 },
+  { id: 'leaderboard_cardio', type: 'leaderboard', visible: true, order: 3, config: { metricType: 'cardio' } },
+  { id: 'leaderboard_strength', type: 'leaderboard', visible: true, order: 4, config: { metricType: 'strength' } },
+  { id: 'leaderboard_snowboard', type: 'leaderboard', visible: true, order: 5, config: { metricType: 'snowboard' } },
+];
 
 export const ClubDetailPage = () => {
   const { clubId } = useParams<{ clubId: string }>();
@@ -31,6 +44,11 @@ export const ClubDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [myRole, setMyRole] = useState<'owner' | 'admin' | 'member' | null>(null);
   const [showCreateChallenge, setShowCreateChallenge] = useState(false);
+
+  // Widget system state
+  const [editMode, setEditMode] = useState(false);
+  const [widgets, setWidgets] = useState<DashboardWidget[]>(DEFAULT_WIDGETS);
+  const [widgetsSaving, setWidgetsSaving] = useState(false);
 
   useEffect(() => {
     if (clubId) {
@@ -51,6 +69,13 @@ export const ClubDetailPage = () => {
     try {
       const clubData = await clubService.getClubDetail(clubId);
       setClub(clubData);
+
+      // Load dashboard config or use default
+      if (clubData.dashboard_config?.widgets) {
+        setWidgets(clubData.dashboard_config.widgets);
+      } else {
+        setWidgets(DEFAULT_WIDGETS);
+      }
 
       // Get my role
       const membersList = await clubService.getClubMembers(clubId);
@@ -106,6 +131,56 @@ export const ClubDetailPage = () => {
       navigate('/club');
     } catch (error) {
       alert(error instanceof Error ? error.message : '탈퇴에 실패했습니다.');
+    }
+  };
+
+  // Widget management functions
+  const handleToggleWidgetVisibility = (widgetId: string) => {
+    setWidgets((prev) =>
+      prev.map((w) => (w.id === widgetId ? { ...w, visible: !w.visible } : w))
+    );
+  };
+
+  const handleMoveWidget = (widgetId: string, direction: 'up' | 'down') => {
+    setWidgets((prev) => {
+      const sortedWidgets = [...prev].sort((a, b) => a.order - b.order);
+      const index = sortedWidgets.findIndex((w) => w.id === widgetId);
+
+      if (index === -1) return prev;
+      if (direction === 'up' && index === 0) return prev;
+      if (direction === 'down' && index === sortedWidgets.length - 1) return prev;
+
+      const newIndex = direction === 'up' ? index - 1 : index + 1;
+      [sortedWidgets[index], sortedWidgets[newIndex]] = [sortedWidgets[newIndex], sortedWidgets[index]];
+
+      return sortedWidgets.map((w, i) => ({ ...w, order: i }));
+    });
+  };
+
+  const handleSaveWidgets = async () => {
+    if (!clubId) return;
+
+    setWidgetsSaving(true);
+    try {
+      const config: DashboardConfig = { widgets };
+      await updateDashboardConfig(clubId, config);
+      alert('대시보드 설정이 저장되었습니다!');
+      setEditMode(false);
+      loadClubData();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : '설정 저장에 실패했습니다.');
+    } finally {
+      setWidgetsSaving(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditMode(false);
+    // Reload original config
+    if (club?.dashboard_config?.widgets) {
+      setWidgets(club.dashboard_config.widgets);
+    } else {
+      setWidgets(DEFAULT_WIDGETS);
     }
   };
 
@@ -189,34 +264,43 @@ export const ClubDetailPage = () => {
       {/* Dashboard Tab */}
       {tab === 'dashboard' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          {/* Live Ticker */}
-          <LiveTicker members={memberLogs} />
+          {/* Edit Mode Controls */}
+          {(myRole === 'owner' || myRole === 'admin') && (
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+              {!editMode ? (
+                <button className="primary-button" onClick={() => setEditMode(true)}>
+                  🎨 대시보드 편집
+                </button>
+              ) : (
+                <>
+                  <button
+                    className="primary-button"
+                    onClick={handleSaveWidgets}
+                    disabled={widgetsSaving}
+                  >
+                    {widgetsSaving ? '저장 중...' : '💾 저장'}
+                  </button>
+                  <button className="cancel-button" onClick={handleCancelEdit}>
+                    취소
+                  </button>
+                </>
+              )}
+            </div>
+          )}
 
-          {/* Hall of Fame - Dynamic Titles */}
-          <HallOfFame members={memberLogs} />
-
-          {/* Daily Squad */}
-          <DailySquad members={memberLogs} />
-
-          {/* 리더보드 (기존 유지) */}
-          <LeaderboardSection
-            title="🏃 유산소 킹"
-            subtitle="평지 환산 거리 기준"
-            members={memberLogs}
-            metricType="cardio"
-          />
-          <LeaderboardSection
-            title="🏋️ 스트렝스 킹"
-            subtitle="총 볼륨 기준"
-            members={memberLogs}
-            metricType="strength"
-          />
-          <LeaderboardSection
-            title="🏂 슬로프 킹"
-            subtitle="런 수 기준"
-            members={memberLogs}
-            metricType="snowboard"
-          />
+          {/* Render Widgets */}
+          {widgets
+            .sort((a, b) => a.order - b.order)
+            .map((widget) => (
+              <DashboardWidgetWrapper
+                key={widget.id}
+                widget={widget}
+                editMode={editMode}
+                onToggleVisibility={handleToggleWidgetVisibility}
+                onMove={handleMoveWidget}
+                memberLogs={memberLogs}
+              />
+            ))}
         </div>
       )}
 
@@ -337,6 +421,179 @@ export const ClubDetailPage = () => {
 
 
 // ============================================
+// Dashboard Widget Wrapper
+// ============================================
+
+interface WidgetWrapperProps {
+  widget: DashboardWidget;
+  editMode: boolean;
+  onToggleVisibility: (widgetId: string) => void;
+  onMove: (widgetId: string, direction: 'up' | 'down') => void;
+  memberLogs: WorkoutLog[];
+}
+
+const DashboardWidgetWrapper = ({
+  widget,
+  editMode,
+  onToggleVisibility,
+  onMove,
+  memberLogs,
+}: WidgetWrapperProps) => {
+  const getWidgetTitle = () => {
+    switch (widget.type) {
+      case 'live_ticker':
+        return '📡 Live Activity';
+      case 'hall_of_fame':
+        return '🏆 명예의 전당';
+      case 'daily_squad':
+        return '👥 오늘의 스쿼드';
+      case 'leaderboard':
+        const metricType = widget.config?.metricType;
+        if (metricType === 'cardio') return '🏃 유산소 킹';
+        if (metricType === 'strength') return '🏋️ 스트렝스 킹';
+        if (metricType === 'snowboard') return '🏂 슬로프 킹';
+        return '리더보드';
+      default:
+        return '위젯';
+    }
+  };
+
+  const renderWidget = () => {
+    switch (widget.type) {
+      case 'live_ticker':
+        return <LiveTicker members={memberLogs} />;
+      case 'hall_of_fame':
+        return <HallOfFame members={memberLogs} />;
+      case 'daily_squad':
+        return <DailySquad members={memberLogs} />;
+      case 'leaderboard':
+        const metricType = widget.config?.metricType as 'cardio' | 'strength' | 'snowboard';
+        let title = '';
+        let subtitle = '';
+        if (metricType === 'cardio') {
+          title = '🏃 유산소 킹';
+          subtitle = '평지 환산 거리 기준';
+        } else if (metricType === 'strength') {
+          title = '🏋️ 스트렝스 킹';
+          subtitle = '총 볼륨 기준';
+        } else if (metricType === 'snowboard') {
+          title = '🏂 슬로프 킹';
+          subtitle = '런 수 기준';
+        }
+        return (
+          <LeaderboardSection
+            title={title}
+            subtitle={subtitle}
+            members={memberLogs}
+            metricType={metricType}
+          />
+        );
+      default:
+        return null;
+    }
+  };
+
+  if (!widget.visible && !editMode) {
+    return null;
+  }
+
+  return (
+    <div
+      style={{
+        position: 'relative',
+        opacity: widget.visible ? 1 : 0.5,
+        border: editMode ? '2px dashed var(--primary-color)' : 'none',
+        borderRadius: editMode ? '12px' : '0',
+        padding: editMode ? '8px' : '0',
+      }}
+    >
+      {/* Edit Mode Controls */}
+      {editMode && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '16px',
+            right: '16px',
+            display: 'flex',
+            gap: '8px',
+            zIndex: 10,
+            background: 'var(--bg-secondary)',
+            padding: '8px',
+            borderRadius: '8px',
+            border: '1px solid var(--border-color)',
+          }}
+        >
+          <button
+            onClick={() => onMove(widget.id, 'up')}
+            style={{
+              padding: '4px 12px',
+              fontSize: '14px',
+              background: 'var(--bg-primary)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              color: 'var(--text-primary)',
+            }}
+            title="위로 이동"
+          >
+            ↑
+          </button>
+          <button
+            onClick={() => onMove(widget.id, 'down')}
+            style={{
+              padding: '4px 12px',
+              fontSize: '14px',
+              background: 'var(--bg-primary)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              color: 'var(--text-primary)',
+            }}
+            title="아래로 이동"
+          >
+            ↓
+          </button>
+          <button
+            onClick={() => onToggleVisibility(widget.id)}
+            style={{
+              padding: '4px 12px',
+              fontSize: '14px',
+              background: widget.visible ? 'var(--primary-color)' : 'var(--bg-primary)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              color: widget.visible ? 'white' : 'var(--text-primary)',
+              fontWeight: '600',
+            }}
+            title={widget.visible ? '숨기기' : '표시'}
+          >
+            {widget.visible ? '👁️' : '👁️‍🗨️'}
+          </button>
+        </div>
+      )}
+
+      {/* Widget Label in Edit Mode */}
+      {editMode && (
+        <div
+          style={{
+            fontSize: '12px',
+            fontWeight: '600',
+            color: 'var(--primary-color)',
+            marginBottom: '8px',
+            textAlign: 'center',
+          }}
+        >
+          {getWidgetTitle()}
+        </div>
+      )}
+
+      {/* Widget Content */}
+      {renderWidget()}
+    </div>
+  );
+};
+
+// ============================================
 // Gamified Dashboard Components
 // ============================================
 
@@ -408,152 +665,50 @@ const LiveTicker = ({ members }: { members: WorkoutLog[] }) => {
 };
 
 
-// Hall of Fame - 동적 타이틀 시스템
+// Hall of Fame Carousel - 배지 시스템
 const HallOfFame = ({ members }: { members: WorkoutLog[] }) => {
-  const titles = useMemo(() => calculateTitles(members), [members]);
+  // Get current user ID
+  const currentUserId = useMemo(() => {
+    const userStr = localStorage.getItem('current_user');
+    if (!userStr) return undefined;
+    try {
+      const user = JSON.parse(userStr);
+      return user.id;
+    } catch {
+      return undefined;
+    }
+  }, []);
 
-  if (titles.length === 0) {
+  const badges = useMemo(() => calculateHofBadges(members, currentUserId), [members, currentUserId]);
+
+  if (badges.length === 0) {
     return (
       <div className="section">
         <h3>🏆 명예의 전당</h3>
         <div className="empty-state">
-          <p>아직 타이틀을 획득한 멤버가 없습니다.</p>
+          <p>아직 배지를 획득한 멤버가 없습니다.</p>
         </div>
       </div>
     );
   }
 
-  const getTitleColor = (icon: string): string => {
-    if (icon === '🌅') return '#f97316'; // orange
-    if (icon === '🏋️') return '#ef4444'; // red
-    if (icon === '🏃') return '#3b82f6'; // blue
-    if (icon === '🏂') return '#8b5cf6'; // purple
-    if (icon === '⚡') return '#eab308'; // yellow
-    return '#64748b';
+  // 배지 타입별 색상 매핑
+  const getBadgeColor = (type: HofBadge['type']): string => {
+    switch (type) {
+      case 'strength':
+        return '#ef4444'; // Red
+      case 'cardio':
+        return '#3b82f6'; // Blue
+      case 'effort':
+        return '#eab308'; // Yellow
+      case 'time':
+        return '#f97316'; // Orange
+      case 'consistency':
+        return '#8b5cf6'; // Purple
+      default:
+        return '#64748b'; // Gray
+    }
   };
-
-  return (
-    <div
-      style={{
-        background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-        border: '2px solid #334155',
-        borderRadius: '12px',
-        padding: '20px',
-      }}
-    >
-      <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '16px', color: '#e2e8f0' }}>
-        🏆 명예의 전당
-      </h3>
-
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-          gap: '12px',
-        }}
-      >
-        {titles.map((title) => (
-          <div
-            key={title.userId + title.title}
-            style={{
-              background: `linear-gradient(135deg, ${getTitleColor(title.icon)}22 0%, ${getTitleColor(title.icon)}11 100%)`,
-              border: `2px solid ${getTitleColor(title.icon)}66`,
-              borderRadius: '12px',
-              padding: '16px',
-              position: 'relative',
-              overflow: 'hidden',
-            }}
-          >
-            {/* Title Badge */}
-            <div
-              style={{
-                position: 'absolute',
-                top: '8px',
-                right: '8px',
-                background: getTitleColor(title.icon),
-                color: 'white',
-                padding: '4px 12px',
-                borderRadius: '12px',
-                fontSize: '11px',
-                fontWeight: '700',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-              }}
-            >
-              <span>{title.icon}</span>
-              <span>{title.title}</span>
-            </div>
-
-            {/* User Info */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-              {title.profileImage ? (
-                <img
-                  src={title.profileImage}
-                  alt={title.displayName}
-                  style={{
-                    width: '48px',
-                    height: '48px',
-                    borderRadius: '50%',
-                    objectFit: 'cover',
-                    border: `3px solid ${getTitleColor(title.icon)}`,
-                  }}
-                />
-              ) : (
-                <div
-                  className="profile-avatar"
-                  style={{
-                    width: '48px',
-                    height: '48px',
-                    fontSize: '20px',
-                    border: `3px solid ${getTitleColor(title.icon)}`,
-                  }}
-                >
-                  {title.displayName[0]}
-                </div>
-              )}
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '16px', fontWeight: '700', color: '#e2e8f0' }}>
-                  {title.displayName}
-                </div>
-              </div>
-            </div>
-
-            {/* Achievement Value */}
-            <div style={{ marginTop: '12px' }}>
-              <div
-                style={{
-                  fontSize: '28px',
-                  fontWeight: '700',
-                  color: getTitleColor(title.icon),
-                  marginBottom: '4px',
-                }}
-              >
-                {title.value}
-              </div>
-              <div style={{ fontSize: '13px', color: '#94a3b8' }}>{title.description}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-// Daily Squad - 오늘의 출석부
-const DailySquad = ({ members }: { members: WorkoutLog[] }) => {
-  const squad = useMemo(() => getTodaySquad(members), [members]);
-
-  if (squad.length === 0) {
-    return (
-      <div className="section">
-        <h3>👥 오늘의 스쿼드</h3>
-        <div className="empty-state">
-          <p>오늘 운동한 멤버가 없습니다.</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div
@@ -566,11 +721,211 @@ const DailySquad = ({ members }: { members: WorkoutLog[] }) => {
     >
       <div style={{ marginBottom: '16px' }}>
         <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#e2e8f0', marginBottom: '4px' }}>
-          👥 오늘의 스쿼드
+          🏆 명예의 전당
         </h3>
         <p style={{ fontSize: '13px', color: '#94a3b8', margin: 0 }}>
-          {squad.length}명이 오늘 운동했습니다
+          주간 베스트 멤버 {badges.length}명
         </p>
+      </div>
+
+      {/* Carousel Container with Snap Scroll */}
+      <div
+        style={{
+          display: 'flex',
+          gap: '16px',
+          overflowX: 'auto',
+          scrollSnapType: 'x mandatory',
+          paddingBottom: '8px',
+          // Hide scrollbar but keep functionality
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+        }}
+        className="hall-of-fame-carousel"
+      >
+        {badges.map((badge) => {
+          const color = getBadgeColor(badge.type);
+
+          return (
+            <div
+              key={badge.badgeId}
+              style={{
+                minWidth: '280px',
+                maxWidth: '280px',
+                scrollSnapAlign: 'start',
+                background: badge.isMe
+                  ? `linear-gradient(135deg, ${color}33 0%, ${color}22 100%)`
+                  : `linear-gradient(135deg, ${color}22 0%, ${color}11 100%)`,
+                border: badge.isMe ? `3px solid ${color}` : `2px solid ${color}66`,
+                borderRadius: '16px',
+                padding: '20px',
+                position: 'relative',
+                overflow: 'hidden',
+                boxShadow: badge.isMe ? `0 0 20px ${color}44` : 'none',
+              }}
+            >
+              {/* Me Badge (나만 표시) */}
+              {badge.isMe && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '12px',
+                    left: '12px',
+                    background: color,
+                    color: 'white',
+                    padding: '4px 10px',
+                    borderRadius: '12px',
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                >
+                  ⭐ ME
+                </div>
+              )}
+
+              {/* Badge Icon (우측 상단) */}
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '12px',
+                  right: '12px',
+                  fontSize: '32px',
+                  opacity: 0.3,
+                }}
+              >
+                {badge.icon}
+              </div>
+
+              {/* Profile */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                {badge.userProfile ? (
+                  <img
+                    src={badge.userProfile}
+                    alt={badge.userName}
+                    style={{
+                      width: '56px',
+                      height: '56px',
+                      borderRadius: '50%',
+                      objectFit: 'cover',
+                      border: `3px solid ${color}`,
+                    }}
+                  />
+                ) : (
+                  <div
+                    className="profile-avatar"
+                    style={{
+                      width: '56px',
+                      height: '56px',
+                      fontSize: '24px',
+                      border: `3px solid ${color}`,
+                    }}
+                  >
+                    {badge.userName[0]}
+                  </div>
+                )}
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '16px', fontWeight: '700', color: '#e2e8f0' }}>
+                    {badge.userName}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: '12px',
+                      color: color,
+                      fontWeight: '600',
+                      marginTop: '4px',
+                    }}
+                  >
+                    {badge.icon} {badge.title}
+                  </div>
+                </div>
+              </div>
+
+              {/* Achievement Value */}
+              <div style={{ marginTop: '16px' }}>
+                <div
+                  style={{
+                    fontSize: '36px',
+                    fontWeight: '700',
+                    color: color,
+                    marginBottom: '6px',
+                    lineHeight: 1,
+                  }}
+                >
+                  {badge.value}
+                </div>
+                <div style={{ fontSize: '13px', color: '#94a3b8', lineHeight: 1.4 }}>
+                  {badge.description}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Scroll Hint (첫 번째 카드가 Me가 아닐 때만 표시) */}
+      {badges.length > 1 && !badges[0].isMe && (
+        <div
+          style={{
+            marginTop: '12px',
+            fontSize: '12px',
+            color: '#64748b',
+            textAlign: 'center',
+          }}
+        >
+          ← 좌우로 스크롤하여 더 많은 배지를 확인하세요 →
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Smart Active Squad - 오늘 + 어제 운동한 멤버 표시
+const DailySquad = ({ members }: { members: WorkoutLog[] }) => {
+  const squad = useMemo(() => getSmartSquad(members), [members]);
+
+  if (squad.length === 0) {
+    return (
+      <div className="section">
+        <h3>👥 Active Squad</h3>
+        <div className="empty-state">
+          <p>최근 활동한 멤버가 없습니다.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 통계 계산
+  const todayCount = squad.filter((m) => m.activityType === 'today').length;
+  const yesterdayCount = squad.filter((m) => m.activityType === 'yesterday').length;
+
+  const getSubtitle = () => {
+    if (todayCount > 0 && yesterdayCount > 0) {
+      return `오늘 ${todayCount}명, 어제 ${yesterdayCount}명이 운동했습니다`;
+    } else if (todayCount > 0) {
+      return `${todayCount}명이 오늘 운동했습니다`;
+    } else if (yesterdayCount > 0) {
+      return `${yesterdayCount}명이 어제 운동했습니다`;
+    } else {
+      return `${squad.length}명의 활성 멤버`;
+    }
+  };
+
+  return (
+    <div
+      style={{
+        background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+        border: '2px solid #334155',
+        borderRadius: '12px',
+        padding: '20px',
+      }}
+    >
+      <div style={{ marginBottom: '16px' }}>
+        <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#e2e8f0', marginBottom: '4px' }}>
+          👥 Active Squad
+        </h3>
+        <p style={{ fontSize: '13px', color: '#94a3b8', margin: 0 }}>{getSubtitle()}</p>
       </div>
 
       <div
@@ -581,106 +936,172 @@ const DailySquad = ({ members }: { members: WorkoutLog[] }) => {
           paddingBottom: '8px',
         }}
       >
-        {squad.map((member) => (
-          <div
-            key={member.userId}
-            style={{
-              minWidth: '160px',
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: '2px solid #334155',
-              borderRadius: '12px',
-              padding: '16px',
-              textAlign: 'center',
-              position: 'relative',
-            }}
-          >
-            {/* Activity Icon Badge */}
-            <div
-              style={{
-                position: 'absolute',
-                top: '8px',
-                right: '8px',
-                fontSize: '20px',
-              }}
-            >
-              {member.mainActivity}
-            </div>
+        {squad.map((member) => {
+          // activityType에 따른 스타일 결정
+          const isToday = member.activityType === 'today';
+          const isYesterday = member.activityType === 'yesterday';
 
-            {/* Profile */}
-            {member.profileImage ? (
-              <img
-                src={member.profileImage}
-                alt={member.displayName}
-                style={{
-                  width: '64px',
-                  height: '64px',
-                  borderRadius: '50%',
-                  objectFit: 'cover',
-                  marginBottom: '12px',
-                }}
-              />
-            ) : (
+          const cardStyle = {
+            minWidth: '160px',
+            background: isToday
+              ? 'rgba(139, 92, 246, 0.15)' // Today: 보라색 배경
+              : isYesterday
+              ? 'rgba(255, 255, 255, 0.05)' // Yesterday: 기본 배경
+              : 'rgba(71, 85, 105, 0.3)', // Recent: 회색조
+            border: isToday
+              ? '2px solid #8b5cf6' // Today: 보라색 테두리
+              : isYesterday
+              ? '2px dashed #64748b' // Yesterday: 점선 회색 테두리
+              : '2px solid #475569',
+            borderRadius: '12px',
+            padding: '16px',
+            textAlign: 'center' as const,
+            position: 'relative' as const,
+            opacity: isToday ? 1 : isYesterday ? 0.85 : 0.7,
+          };
+
+          const getBadge = () => {
+            if (isToday) {
+              return (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '8px',
+                    left: '8px',
+                    background: '#8b5cf6',
+                    color: 'white',
+                    padding: '2px 8px',
+                    borderRadius: '6px',
+                    fontSize: '10px',
+                    fontWeight: '700',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '2px',
+                  }}
+                >
+                  🔥 Today
+                </div>
+              );
+            } else if (isYesterday) {
+              return (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '8px',
+                    left: '8px',
+                    background: '#64748b',
+                    color: 'white',
+                    padding: '2px 8px',
+                    borderRadius: '6px',
+                    fontSize: '10px',
+                    fontWeight: '600',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '2px',
+                  }}
+                >
+                  ⚡ Yesterday
+                </div>
+              );
+            }
+            return null;
+          };
+
+          return (
+            <div key={member.userId} style={cardStyle}>
+              {/* Period Badge */}
+              {getBadge()}
+
+              {/* Activity Icon Badge */}
               <div
-                className="profile-avatar"
                 style={{
-                  width: '64px',
-                  height: '64px',
-                  fontSize: '28px',
-                  margin: '0 auto 12px',
+                  position: 'absolute',
+                  top: '8px',
+                  right: '8px',
+                  fontSize: '20px',
                 }}
               >
-                {member.displayName[0]}
+                {member.mainActivity}
               </div>
-            )}
 
-            {/* Name */}
-            <div
-              style={{
-                fontSize: '14px',
-                fontWeight: '700',
-                color: '#e2e8f0',
-                marginBottom: '8px',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-              }}
-            >
-              {member.displayName}
-            </div>
+              {/* Profile */}
+              {member.profileImage ? (
+                <img
+                  src={member.profileImage}
+                  alt={member.displayName}
+                  style={{
+                    width: '64px',
+                    height: '64px',
+                    borderRadius: '50%',
+                    objectFit: 'cover',
+                    marginBottom: '12px',
+                    border: isToday ? '3px solid #8b5cf6' : '2px solid #64748b',
+                  }}
+                />
+              ) : (
+                <div
+                  className="profile-avatar"
+                  style={{
+                    width: '64px',
+                    height: '64px',
+                    fontSize: '28px',
+                    margin: '0 auto 12px',
+                    border: isToday ? '3px solid #8b5cf6' : '2px solid #64748b',
+                  }}
+                >
+                  {member.displayName[0]}
+                </div>
+              )}
 
-            {/* Workout Count */}
-            <div
-              style={{
-                fontSize: '12px',
-                color: '#94a3b8',
-                marginBottom: '8px',
-              }}
-            >
-              {member.workoutCount}개 운동
-            </div>
-
-            {/* Memo Speech Bubble */}
-            {member.memo && (
+              {/* Name */}
               <div
                 style={{
-                  background: 'rgba(139, 92, 246, 0.2)',
-                  border: '1px solid #8b5cf6',
-                  borderRadius: '8px',
-                  padding: '8px',
-                  fontSize: '12px',
-                  color: '#c4b5fd',
-                  marginTop: '8px',
-                  lineHeight: '1.4',
-                  maxHeight: '60px',
+                  fontSize: '14px',
+                  fontWeight: '700',
+                  color: '#e2e8f0',
+                  marginBottom: '8px',
+                  whiteSpace: 'nowrap',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                 }}
               >
-                💬 {member.memo}
+                {member.displayName}
               </div>
-            )}
-          </div>
-        ))}
+
+              {/* Workout Count */}
+              <div
+                style={{
+                  fontSize: '12px',
+                  color: '#94a3b8',
+                  marginBottom: '8px',
+                }}
+              >
+                {member.workoutCount}개 운동
+              </div>
+
+              {/* Memo Speech Bubble */}
+              {member.memo && (
+                <div
+                  style={{
+                    background: isToday ? 'rgba(139, 92, 246, 0.2)' : 'rgba(100, 116, 139, 0.2)',
+                    border: isToday ? '1px solid #8b5cf6' : '1px solid #64748b',
+                    borderRadius: '8px',
+                    padding: '8px',
+                    fontSize: '12px',
+                    color: isToday ? '#c4b5fd' : '#94a3b8',
+                    marginTop: '8px',
+                    lineHeight: '1.4',
+                    maxHeight: '60px',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  💬 {member.memo}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

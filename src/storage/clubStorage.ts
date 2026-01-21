@@ -214,6 +214,24 @@ export const deleteClub = async (clubId: string): Promise<void> => {
   }
 };
 
+// Update dashboard widget configuration
+export const updateDashboardConfig = async (
+  clubId: string,
+  dashboardConfig: any
+): Promise<void> => {
+  try {
+    const { error } = await supabase
+      .from('clubs')
+      .update({ dashboard_config: dashboardConfig })
+      .eq('id', clubId);
+
+    if (error) throw error;
+  } catch (error) {
+    console.error('대시보드 설정 업데이트 실패:', error);
+    throw new Error('대시보드 설정 업데이트에 실패했습니다.');
+  }
+};
+
 // ============================================
 // Member Management Functions
 // ============================================

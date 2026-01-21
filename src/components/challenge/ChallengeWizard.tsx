@@ -13,6 +13,7 @@ import type {
 } from '../../types/challenge';
 import { CHALLENGE_TEMPLATES, REFERENCE_GUIDES } from '../../types/challenge';
 import type { WorkoutCategory, WorkoutType } from '../../types';
+import * as clubStorage from '../../storage/clubStorage';
 
 interface ChallengeWizardProps {
   clubId: string;
@@ -90,8 +91,7 @@ export const ChallengeWizard = ({ clubId, onClose, onSuccess }: ChallengeWizardP
         theme_color: themeColor,
       };
 
-      // TODO: API 호출
-      console.log('Creating challenge:', dto);
+      await clubStorage.createChallenge(dto);
       alert('챌린지가 생성되었습니다!');
       onSuccess();
     } catch (error) {

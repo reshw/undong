@@ -158,6 +158,24 @@ export interface DailyTodo {
 // Clubs System Types
 // ============================================
 
+// Dashboard Widget Types
+export type DashboardWidgetType = 'live_ticker' | 'hall_of_fame' | 'daily_squad' | 'leaderboard';
+
+export interface DashboardWidget {
+  id: string;
+  type: DashboardWidgetType;
+  visible: boolean;
+  order: number;
+  config?: {
+    metricType?: 'cardio' | 'strength' | 'snowboard';
+    [key: string]: any;
+  };
+}
+
+export interface DashboardConfig {
+  widgets: DashboardWidget[];
+}
+
 export interface Club {
   id: string;
   name: string;
@@ -167,6 +185,7 @@ export interface Club {
   owner_id: string;
   created_at: string;
   updated_at: string;
+  dashboard_config?: DashboardConfig;
 }
 
 export interface ClubWithMemberInfo extends Club {
