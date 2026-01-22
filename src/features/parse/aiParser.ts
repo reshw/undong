@@ -213,7 +213,7 @@ function determineTarget(name: string): WorkoutTarget {
  * Sanitize: Convert 0 -> null
  */
 function sanitize<T extends Record<string, any>>(obj: T): T {
-  const result = { ...obj };
+  const result: any = { ...obj };
   const numericFields = ['distance_km', 'duration_min', 'speed_kph', 'floors', 'weight_kg', 'sets', 'reps', 'run_count'];
 
   numericFields.forEach(key => {
@@ -222,7 +222,7 @@ function sanitize<T extends Record<string, any>>(obj: T): T {
     }
   });
 
-  return result;
+  return result as T;
 }
 
 /**

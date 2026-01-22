@@ -90,7 +90,7 @@ export const Dashboard = () => {
             // 카테고리별 환산 비율 적용
             const adjustedDistance = calculateAdjustedDistance(
               workout.distance_km,
-              workout.adjusted_dist_km,
+              workout.adjusted_dist_km ?? null,
               workout.name
             );
 
