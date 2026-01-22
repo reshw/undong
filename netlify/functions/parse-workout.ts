@@ -4,34 +4,43 @@ import { zodResponseFormat } from "openai/helpers/zod";
 import { z } from "zod";
 
 // ==========================================
-// Inline Schemas (to avoid import issues)
+// Inline Schemas
 // ==========================================
 
 const InternalCategoryEnum = z.enum(["cardio", "strength", "snowboard"]);
 
 const ShreddedSegmentSchema = z.object({
-  original_text: z.string().describe("운동별로 분리된 문장"),
-  category: InternalCategoryEnum.describe("담당 부서"),
-  item_name_hint: z.string().describe("운동 이름 힌트"),
+  original_text: z.string().describe("Text segment for a specific workout"),
+  category: InternalCategoryEnum.describe("Category: 'cardio' (includes cycle/rowing), 'strength', 'snowboard'"),
+  item_name_hint: z.string().describe("Hint for exercise name (e.g., 'cycle', 'bench_press')"),
 });
 
 const ShredderResponseSchema = z.object({
   segments: z.array(ShreddedSegmentSchema),
 });
 
+// 걷기(walking)도 유산소에 추가
 const CardioNames = z.enum([
-  "running", "stepmill", "rowing", "cycle", "swimming",
+  "running", "walking", "stepmill", "rowing", "cycle", "swimming",
   "hiking", "jump_rope", "elliptical", "other"
 ]);
 
+// 🔥 [UPGRADE] 3대장 지표(Quality Metrics) 추가된 스키마
 const CardioResultSchema = z.object({
   reasoning: z.string(),
   name: CardioNames,
+  
+  // Basic Metrics
   distance_km: z.union([z.number(), z.null()]),
   duration_min: z.union([z.number(), z.null()]),
   speed_kph: z.union([z.number(), z.null()]),
   pace: z.string().nullable(),
   floors: z.union([z.number(), z.null()]),
+  
+  // 🔥 New Quality Metrics
+  resistance_level: z.union([z.number(), z.null()]).describe("Damper, Level, Gear, Incline"),
+  cadence: z.union([z.number(), z.null()]).describe("RPM, SPM, Cadence"),
+  watts: z.union([z.number(), z.null()]).describe("Power, Watts")
 });
 
 const StrengthResultSchema = z.object({
@@ -50,13 +59,11 @@ const SnowboardResultSchema = z.object({
 });
 
 type ShreddedSegment = z.infer<typeof ShreddedSegmentSchema>;
-type InternalCategory = z.infer<typeof InternalCategoryEnum>;
 
 // ==========================================
 // OpenAI Client
 // ==========================================
 
-// NOTE: Use OPENAI_API_KEY (backend env var), NOT VITE_OPENAI_API_KEY (frontend)
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
 });
@@ -64,7 +71,7 @@ const openai = new OpenAI({
 const MODEL = "gpt-4o-mini";
 
 // ==========================================
-// Shredder
+// 1. Shredder (Classification Fix)
 // ==========================================
 
 async function shredInput(input: string): Promise<ShreddedSegment[]> {
@@ -76,16 +83,22 @@ async function shredInput(input: string): Promise<ShreddedSegment[]> {
         content: `
 You are a Text Shredder. Split workout logs into distinct segments.
 
-[RULES]
-1. Split by Activity: "Run 30m and Bench 60kg" -> 2 segments
-2. Keep numbers with exercise: "Squat 100kg 5 sets" is ONE segment
-3. Assign Category: 'strength' for weights, 'cardio' for running/cycling, 'snowboard' for snowboard
+[CATEGORIZATION RULES - STRICT]
+1. **Cardio**: Running, **Cycle (Bike, Spinning)**, Rowing, Stepmill, Walking, Swimming.
+   - "사이클", "자전거", "스피닝", "따릉이" -> MUST be 'cardio'
+2. **Strength**: Weights (Bench, Squat), Bodyweight (Pushups, Pullups), Machines.
+3. **Snowboard**: Snowboarding, Skiing.
 
 [EXAMPLES]
-In: "런닝 20분 뛰고 벤치 60 5세트"
+In: "사이클 30분 타고 벤치 60 5세트"
 Out: [
-  { original_text: "런닝 20분", category: "cardio", item_name_hint: "running" },
+  { original_text: "사이클 30분", category: "cardio", item_name_hint: "cycle" },
   { original_text: "벤치 60 5세트", category: "strength", item_name_hint: "bench_press" }
+]
+
+In: "로잉 20분 댐퍼4"
+Out: [
+  { original_text: "로잉 20분 댐퍼4", category: "cardio", item_name_hint: "rowing" }
 ]
 `
       },
@@ -98,7 +111,7 @@ Out: [
 }
 
 // ==========================================
-// Specialists
+// 2. Specialists (Metrics Update)
 // ==========================================
 
 async function parseCardio(text: string, hint: string) {
@@ -110,11 +123,16 @@ async function parseCardio(text: string, hint: string) {
         content: `
 You are a Cardio Specialist.
 
-[RULES]
-1. "~로" -> Speed (e.g. "6km로" -> speed_kph: 6)
-2. "~를" -> Distance (e.g. "6km를" -> distance_km: 6)
-3. Stepmill: Use 'floors' field, NOT distance
-4. Use NULL for missing data, NEVER 0
+[CRITICAL RULES]
+1. **"~로"** -> Speed (e.g. "6km로" -> speed_kph: 6)
+2. **"~를"** -> Distance (e.g. "6km를" -> distance_km: 6)
+3. Stepmill: Use 'floors' field, NOT distance.
+4. Use NULL for missing data.
+
+[QUALITY METRICS - EXTRACT THESE!]
+- **Resistance**: "damper 4", "level 10", "gear 5", "강도 3" -> resistance_level
+- **Cadence**: "60rpm", "180spm", "cadence 90", "회전수 60" -> cadence
+- **Power**: "200w", "200watts", "200와트" -> watts
 `
       },
       { role: "user", content: `Hint: ${hint}\nInput: ${text}` },
@@ -134,10 +152,10 @@ async function parseStrength(text: string, hint: string) {
 You are a Strength Specialist.
 
 [RULES]
-1. "kg/키로" -> weight_kg
-2. "세트" -> sets
-3. "회/개" -> reps
-4. Bodyweight exercises: weight_kg = NULL
+1. "kg" -> weight_kg
+2. "set/세트" -> sets
+3. "reps/회/개" -> reps
+4. Bodyweight -> weight_kg = NULL
 `
       },
       { role: "user", content: `Hint: ${hint}\nInput: ${text}` },
@@ -148,6 +166,7 @@ You are a Strength Specialist.
 }
 
 async function parseSnowboard(text: string) {
+  // Simple regex fallback for snowboard
   const durationMatch = text.match(/(\d+)\s*(시간|분)/);
   const runCountMatch = text.match(/(\d+)\s*(회|번|런)/);
 
@@ -160,7 +179,7 @@ async function parseSnowboard(text: string) {
 }
 
 // ==========================================
-// Mapper
+// 3. Mapper (Wiring it all together)
 // ==========================================
 
 function mapToWorkout(seg: ShreddedSegment, parsed: any) {
@@ -179,6 +198,8 @@ function mapToWorkout(seg: ShreddedSegment, parsed: any) {
     category,
     type,
     target,
+    
+    // Standard Metrics
     distance_km: parsed.distance_km ?? null,
     duration_min: parsed.duration_min ?? null,
     speed_kph: parsed.speed_kph ?? null,
@@ -187,8 +208,13 @@ function mapToWorkout(seg: ShreddedSegment, parsed: any) {
     reps: parsed.reps ?? null,
     weight_kg: parsed.weight_kg ?? null,
     run_count: parsed.run_count ?? null,
-    incline_percent: null,
-    resistance_level: null,
+    floors: parsed.floors ?? null,
+    
+    // 🔥 NEW QUALITY METRICS (Mapped here!)
+    resistance_level: parsed.resistance_level ?? null,
+    cadence: parsed.cadence ?? null,
+    watts: parsed.watts ?? null,
+    
     note: parsed.note ?? null,
   };
 }
@@ -207,80 +233,48 @@ function determineTarget(name: string) {
 // ==========================================
 
 export const handler: Handler = async (event: HandlerEvent) => {
-  // 1. Check Method
   if (event.httpMethod !== "POST") {
-    return {
-      statusCode: 405,
-      body: JSON.stringify({ error: "Method Not Allowed" }),
-    };
+    return { statusCode: 405, body: JSON.stringify({ error: "Method Not Allowed" }) };
   }
 
-  // 2. Check API Key (Fail fast)
   if (!process.env.OPENAI_API_KEY) {
-    console.error("🔥 FATAL: OPENAI_API_KEY is missing in Netlify environment variables.");
-    return {
-      statusCode: 500,
-      body: JSON.stringify({
-        error: "Server Configuration Error",
-        details: "Missing OPENAI_API_KEY in environment variables"
-      }),
-    };
+    console.error("🔥 FATAL: OPENAI_API_KEY is missing.");
+    return { statusCode: 500, body: JSON.stringify({ error: "Server Configuration Error" }) };
   }
 
   try {
-    // 3. Parse Request Body
     const { text } = JSON.parse(event.body || "{}");
+    if (!text) return { statusCode: 400, body: JSON.stringify({ error: "Missing text" }) };
 
-    if (!text || typeof text !== "string") {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ error: "Missing or invalid 'text' field" }),
-      };
-    }
+    console.log("[parse-workout] Processing:", text);
 
-    console.log("[parse-workout] Processing text:", text.substring(0, 50) + "...");
-
-    // 4. Shred Input
+    // 1. Shred
     const segments = await shredInput(text);
-    console.log("[parse-workout] Shredded into", segments.length, "segments");
-
-    // 5. Parse Each Segment
+    
+    // 2. Parse
     const results = await Promise.all(segments.map(async (seg) => {
       let parsed: any = null;
-
-      switch (seg.category) {
-        case 'cardio':
-          parsed = await parseCardio(seg.original_text, seg.item_name_hint);
-          break;
-        case 'strength':
-          parsed = await parseStrength(seg.original_text, seg.item_name_hint);
-          break;
-        case 'snowboard':
-          parsed = await parseSnowboard(seg.original_text);
-          break;
-      }
-
+      
+      // Specialist Routing
+      if (seg.category === 'cardio') parsed = await parseCardio(seg.original_text, seg.item_name_hint);
+      else if (seg.category === 'strength') parsed = await parseStrength(seg.original_text, seg.item_name_hint);
+      else if (seg.category === 'snowboard') parsed = await parseSnowboard(seg.original_text);
+      
       return parsed ? mapToWorkout(seg, parsed) : null;
     }));
 
     const workouts = results.filter(w => w !== null);
-    console.log("[parse-workout] Successfully parsed", workouts.length, "workouts");
-
+    
     return {
       statusCode: 200,
       body: JSON.stringify({ workouts }),
     };
-  } catch (error) {
-    console.error("🔥 [parse-workout] Error:", error);
 
-    // Return detailed error for debugging
+  } catch (error) {
+    console.error("🔥 Error:", error);
     return {
       statusCode: 500,
-      body: JSON.stringify({
-        error: "AI Processing Failed",
-        details: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined
-      }),
+      body: JSON.stringify({ error: "Processing Failed", details: String(error) }),
     };
   }
 };

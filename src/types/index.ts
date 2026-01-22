@@ -8,7 +8,7 @@ export type RecordingState =
 
 // Matrix Classification: 2축 분류 체계
 // 축 1: Category (카테고리) - "어디서/어떤 판에서 놀았는가?"
-export type WorkoutCategory = 'gym' | 'snowboard' | 'running' | 'sports' | 'home' | 'other';
+export type WorkoutCategory = 'gym' | 'snowboard' | 'running' | 'sports' | 'home' |'cycle' | 'other';
 
 // 축 2: Type (트레이닝 타입) - "몸을 어떻게 조졌는가?"
 export type WorkoutType = 'strength' | 'cardio' | 'skill' | 'flexibility' | 'unknown';
@@ -37,6 +37,8 @@ export interface Workout {
   speed_kph?: number | null; // 속도 (km/h)
   incline_percent?: number | null; // 경사도 (%)
   resistance_level?: number | null; // 저항 레벨 (사이클, 로잉 등)
+  cadence?: number | null; // RPM, SPM
+  watts?: number | null;   // Power
 
   // Type별 전용 비교 지표 (리더보드용)
   adjusted_dist_km?: number | null; // 🏃 카디오: 평지 환산 거리 (인클라인 보정) - DEPRECATED, 집계 시 계산

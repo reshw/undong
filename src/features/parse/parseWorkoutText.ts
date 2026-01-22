@@ -103,6 +103,8 @@ interface ParsedNumbers {
   speed_kph: number | null;
   incline_percent: number | null;
   resistance_level: number | null;
+  cadence: number | null; 
+  watts: number | null;  
 }
 
 const extractNumbers = (segment: string): ParsedNumbers => {
@@ -115,11 +117,31 @@ const extractNumbers = (segment: string): ParsedNumbers => {
   let speed_kph: number | null = null;
   let incline_percent: number | null = null;
   let resistance_level: number | null = null;
+  let cadence: number | null = null;
+  let watts: number | null = null;
+  
+  // 1. [우선순위 상향] 저항/레벨/댐퍼 (명확한 키워드)
+  const resistanceMatch = segment.match(/(?:레벨|저항|기어|댐퍼|강도)\s*(\d+)/i);
+  if (resistanceMatch) resistance_level = parseInt(resistanceMatch[1], 10);
+
+  // 2. [우선순위 상향] 케이던스/RPM/회전수
+  const cadenceMatch = segment.match(/(\d+)\s*(?:rpm|spm|케이던스|회전수)/i);
+  if (cadenceMatch) cadence = parseInt(cadenceMatch[1], 10);
+
+  // 3. [우선순위 상향] 와트/파워resistanceMatch
+  const wattsMatch = segment.match(/(\d+)\s*(?:w|와트|watt|파워)/i);
+  if (wattsMatch) watts = parseInt(wattsMatch[1], 10);
 
   const setsMatch = segment.match(/(\d+)\s*세트/);
   if (setsMatch) {
     sets = parseInt(setsMatch[1], 10);
   }
+
+  const weightMatch = segment.match(/(\d+(?:\.\d+)?)\s*(kg|킬로|키로)/i);
+  if (weightMatch) {
+    weight_kg = parseFloat(weightMatch[1]);
+  }
+  
 
   // "회", "개", "번" 모두 reps로 인식
   const repsMatch = segment.match(/(\d+)\s*(회|개|번)/);
@@ -127,10 +149,7 @@ const extractNumbers = (segment: string): ParsedNumbers => {
     reps = parseInt(repsMatch[1], 10);
   }
 
-  const weightMatch = segment.match(/(\d+(?:\.\d+)?)\s*(kg|킬로|키로)/i);
-  if (weightMatch) {
-    weight_kg = parseFloat(weightMatch[1]);
-  }
+  
 
   // 거리 파싱: "2km", "10킬로", "5키로"
   const distanceMatch = segment.match(/(\d+(?:\.\d+)?)\s*(km|킬로|키로)/i);
@@ -138,6 +157,9 @@ const extractNumbers = (segment: string): ParsedNumbers => {
     // weight와 구분하기 위해 weightMatch가 없을 때만
     distance_km = parseFloat(distanceMatch[1]);
   }
+  
+  
+
 
   // 페이스 파싱: "1분 30초", "2분", "5:30"
   const paceMinSecMatch = segment.match(/(\d+)\s*분\s*(\d+)\s*초/);
@@ -199,13 +221,9 @@ const extractNumbers = (segment: string): ParsedNumbers => {
     incline_percent = parseInt(inclineMatch[1], 10);
   }
 
-  // 저항 레벨 파싱: "레벨 5", "저항 8", "기어 10"
-  const resistanceMatch = segment.match(/(?:레벨|저항|기어)\s*(\d+)/i);
-  if (resistanceMatch) {
-    resistance_level = parseInt(resistanceMatch[1], 10);
-  }
+  
 
-  return { sets, reps, weight_kg, duration_min, distance_km, pace, speed_kph, incline_percent, resistance_level };
+  return { sets, reps, weight_kg, duration_min, distance_km, pace, speed_kph, incline_percent, resistance_level, cadence, watts };
 };
 
 const findExerciseName = (segment: string): string | null => {
@@ -237,9 +255,7 @@ const findExerciseName = (segment: string): string | null => {
 };
 
 export const parseWorkoutText = (normalizedText: string): Workout[] => {
-  if (!normalizedText.trim()) {
-    return [];
-  }
+  if (!normalizedText.trim()) return [];
 
   const segments = normalizedText.split(/[,.\n]/).filter((s) => s.trim());
   const workouts: Workout[] = [];
@@ -251,13 +267,33 @@ export const parseWorkoutText = (normalizedText: string): Workout[] => {
     const name = findExerciseName(trimmed);
     if (!name) continue;
 
-    const { sets, reps, weight_kg, duration_min, distance_km, pace, speed_kph, incline_percent, resistance_level } = extractNumbers(trimmed);
+    let { 
+      sets, reps, weight_kg, duration_min, distance_km, 
+      pace, speed_kph, incline_percent, resistance_level,
+      cadence, watts 
+    } = extractNumbers(trimmed);
 
-    // Matrix Classification: 2축 분류
     const category = determineWorkoutCategory(name);
     const type = determineWorkoutType(name);
 
-    // Target 결정 (근력 운동만)
+    // 🔥 [데이터 보완 로직] 사이클(cycle) 전용 물리 역산
+    if (category === 'cycle' && duration_min) {
+      const timeHours = duration_min / 60;
+      const effectiveRpm = cadence || 60; // 사장님 요청: RPM 없으면 60 가정
+
+      // 케이스 A: 저항+시간 있는데 거리 없을 때 -> 거리 추정
+      if (!distance_km && resistance_level) {
+        const estimatedSpeed = 10 + (effectiveRpm * 0.15) + (resistance_level * 0.5);
+        distance_km = Number((estimatedSpeed * timeHours).toFixed(2));
+      } 
+      // 케이스 B: 거리+시간 있는데 저항 없을 때 -> 저항 역산
+      else if (distance_km && !resistance_level) {
+        const speedKph = distance_km / timeHours;
+        let calculatedRes = (speedKph - 10 - (effectiveRpm * 0.15)) * 2;
+        resistance_level = Math.max(1, Math.min(20, Math.round(calculatedRes)));
+      }
+    }
+
     const target = type === 'strength' ? determineWorkoutTarget(name) : undefined;
 
     // note 추출: 괄호 안 내용 또는 강도 표현
@@ -266,28 +302,17 @@ export const parseWorkoutText = (normalizedText: string): Workout[] => {
     if (noteMatch) {
       note = noteMatch[1];
     } else {
-      // 강도/스타일 표현 추출
       const intensityMatch = trimmed.match(/(빡세게|가볍게|하드하게|라이트하게|인터벌|속도|템포|프리스타일|카빙|곤돌라|초급|중급|고급)/);
       if (intensityMatch) {
         note = intensityMatch[1];
       }
     }
 
+    // 🔥 [수정] 위에서 뽑은 note 변수를 정상적으로 push
     workouts.push({
-      name,
-      sets,
-      reps,
-      weight_kg,
-      duration_min,
-      distance_km,
-      pace,
-      category,
-      type,
-      target,
-      speed_kph,
-      incline_percent,
-      resistance_level,
-      note,
+      name, sets, reps, weight_kg, duration_min, distance_km,
+      pace, category, type, target, speed_kph, incline_percent,
+      resistance_level, cadence, watts, note // ✅ 빈 문자열 "" 대신 변수 note 사용
     });
   }
 

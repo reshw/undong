@@ -18,6 +18,33 @@ import {
 type AddMode = 'web-speech' | 'ai';
 type InputMode = 'voice' | 'text';
 
+// 🔥 [추가] 질적 지표(Quality Metrics) 추출 헬퍼 함수
+const getQualityMetrics = (workout: Workout) => {
+  const metrics = [];
+  
+  // 1. 저항/댐퍼/레벨
+  if (workout.resistance_level) {
+    metrics.push(`저항 ${workout.resistance_level}`);
+  }
+  
+  // 2. 케이던스/RPM
+  if (workout.cadence) {
+    metrics.push(`${workout.cadence} RPM`);
+  }
+  
+  // 3. 파워/와트
+  if (workout.watts) {
+    metrics.push(`${workout.watts} W`);
+  }
+
+  // 4. 경사도 (러닝 머신 등)
+  if (workout.incline_percent) {
+    metrics.push(`경사 ${workout.incline_percent}%`);
+  }
+  
+  return metrics;
+};
+
 export const History = () => {
   const location = useLocation();
   const contributeChallengeId = (location.state as any)?.contributeChallengeId;
@@ -34,15 +61,14 @@ export const History = () => {
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [dateMode, setDateMode] = useState<'today' | 'custom'>('today');
-  const [isPrivate, setIsPrivate] = useState(false); // 나만 보기 설정
-  const [isAddingMore, setIsAddingMore] = useState(false); // 더 추가하기 모드
+  const [isPrivate, setIsPrivate] = useState(false);
+  const [isAddingMore, setIsAddingMore] = useState(false);
 
   const webSpeech = useSpeechRecognition();
   const whisper = useWhisperRecording();
 
   useEffect(() => {
     loadLogs();
-    // If coming from challenge page, auto-open add mode
     if (contributeChallengeId) {
       setIsAdding(true);
     }
@@ -73,7 +99,6 @@ export const History = () => {
 
     if (recordingState === 'idle') {
       if (!isAddingMore) {
-        // 새로 녹음 시작 (기존 내용 초기화)
         webSpeech.resetTranscript();
       }
       setRecordingState('listening');
@@ -93,13 +118,12 @@ export const History = () => {
           const finalText = webSpeech.transcript.trim();
           console.log('[History] Web Speech final text:', finalText);
 
-          // 더 추가하기 모드면 기존 텍스트에 추가
           const updatedText = isAddingMore && editableText
             ? `${editableText}, ${finalText}`
             : finalText;
 
           setEditableText(updatedText);
-          setIsAddingMore(false); // 추가 완료, 모드 해제
+          setIsAddingMore(false);
           handleParse(updatedText, false);
         }, 500);
       } else {
@@ -107,13 +131,12 @@ export const History = () => {
         const whisperResult = await whisper.stopRecording();
         console.log('[History] Whisper final text:', whisperResult);
 
-        // 더 추가하기 모드면 기존 텍스트에 추가
         const updatedText = isAddingMore && editableText
           ? `${editableText}, ${whisperResult}`
           : whisperResult;
 
         setEditableText(updatedText);
-        setIsAddingMore(false); // 추가 완료, 모드 해제
+        setIsAddingMore(false);
         handleParse(updatedText, true);
       }
     }
@@ -163,7 +186,6 @@ export const History = () => {
   };
 
   const handleRestartRecording = () => {
-    // 다시 말하기: idle 상태로 돌아가서 처음부터 다시 녹음
     setRecordingState('idle');
     setEditableText('');
     setWorkouts([]);
@@ -172,10 +194,9 @@ export const History = () => {
   };
 
   const handleAddMore = () => {
-    // 더 추가하기: 기존 내용 유지하고 idle로 돌아가서 추가 녹음
     setRecordingState('idle');
-    setIsAddingMore(true); // 추가 모드 활성화
-    webSpeech.resetTranscript(); // transcript만 초기화, editableText는 유지
+    setIsAddingMore(true);
+    webSpeech.resetTranscript();
   };
 
   const handleSave = async () => {
@@ -184,7 +205,6 @@ export const History = () => {
       return;
     }
 
-    // Use selected date (or today if in 'today' mode)
     const actualDate = dateMode === 'today' ? new Date() : selectedDate;
     const dateString = formatDate(actualDate);
 
@@ -195,13 +215,12 @@ export const History = () => {
       workouts,
       memo: null,
       createdAt: Date.now(),
-      isPrivate, // 나만 보기 설정 포함
+      isPrivate,
     };
 
     try {
       const savedLog = await saveLog(log);
 
-      // If coming from challenge page, contribute to challenge
       if (contributeChallengeId && savedLog?.id) {
         try {
           await challengeService.contributeToChallenge(contributeChallengeId, savedLog.id);
@@ -213,7 +232,6 @@ export const History = () => {
         alert('저장되었습니다!');
       }
 
-      // Reset only recording-related states, keep isAdding and selectedDate
       setRecordingState('idle');
       setInputMode('voice');
       setTextInput('');
@@ -263,20 +281,17 @@ export const History = () => {
     return grouped;
   };
 
-  // 날짜별 운동 통계 계산
   const calculateDayStats = (logs: WorkoutLog[]) => {
     const allWorkouts = logs.flatMap(log => log.workouts);
     const totalWorkouts = allWorkouts.length;
     const totalSets = allWorkouts.reduce((sum, w) => sum + (w.sets || 0), 0);
     const totalDuration = allWorkouts.reduce((sum, w) => sum + (w.duration_min || 0), 0);
 
-    // 운동 종류별 카운트
     const workoutTypes = new Map<string, number>();
     allWorkouts.forEach(w => {
       workoutTypes.set(w.name, (workoutTypes.get(w.name) || 0) + 1);
     });
 
-    // 가장 많이 한 운동 3개
     const topWorkouts = Array.from(workoutTypes.entries())
       .sort((a, b) => b[1] - a[1])
       .slice(0, 3)
@@ -519,6 +534,8 @@ export const History = () => {
                     const typeColor = getTypeColor(workout.type);
                     const typeLabel = getTypeLabel(workout.type);
                     const typeLightColor = getTypeLightColor(workout.type);
+                    // 🔥 질적 데이터 가져오기
+                    const qualityMetrics = getQualityMetrics(workout);
 
                     return (
                       <div
@@ -551,13 +568,32 @@ export const History = () => {
                           </div>
                         </div>
                         <div className="workout-details">
+                          {/* 1. 거리/속도/페이스 */}
                           {workout.distance_km && <span className="distance">{workout.distance_km} km</span>}
                           {workout.pace && <span className="pace">{workout.pace} /km</span>}
+                          
+                          {/* 2. 🔥 [추가] 질적 데이터 (RPM, 댐퍼, 와트 등) */}
+                          {qualityMetrics.map((metric, i) => (
+                            <span key={i} style={{ 
+                              backgroundColor: 'rgba(0,0,0,0.05)', 
+                              border: '1px solid rgba(0,0,0,0.1)',
+                              fontWeight: 600,
+                              color: 'var(--text-primary)'
+                            }}>
+                              {metric}
+                            </span>
+                          ))}
+
+                          {/* 3. 무게/세트/렙스 */}
                           {workout.weight_kg && <span className="weight">{workout.weight_kg} kg</span>}
                           {workout.sets && <span>{workout.sets} 세트</span>}
                           {workout.reps && <span>{workout.reps} 회</span>}
+                          
+                          {/* 4. 시간 */}
                           {workout.duration_min && <span>{workout.duration_min} 분</span>}
-                          {!workout.sets && !workout.reps && !workout.duration_min && !workout.weight_kg && !workout.distance_km && !workout.pace && (
+
+                          {/* 5. 데이터가 없을 때 */}
+                          {!workout.sets && !workout.reps && !workout.duration_min && !workout.weight_kg && !workout.distance_km && !workout.pace && qualityMetrics.length === 0 && (
                             <span className="no-details">상세 정보 없음</span>
                           )}
                         </div>
@@ -650,6 +686,8 @@ export const History = () => {
                 const typeColor = getTypeColor(workout.type);
                 const typeLabel = getTypeLabel(workout.type);
                 const typeLightColor = getTypeLightColor(workout.type);
+                // 🔥 질적 데이터 가져오기
+                const qualityMetrics = getQualityMetrics(workout);
 
                 return (
                   <div
@@ -682,13 +720,32 @@ export const History = () => {
                       </div>
                     </div>
                     <div className="workout-details">
+                      {/* 1. 거리/속도/페이스 */}
                       {workout.distance_km && <span className="distance">{workout.distance_km} km</span>}
                       {workout.pace && <span className="pace">{workout.pace} /km</span>}
+                      
+                      {/* 2. 🔥 [추가] 질적 데이터 */}
+                      {qualityMetrics.map((metric, i) => (
+                        <span key={i} style={{ 
+                          backgroundColor: 'rgba(0,0,0,0.05)', 
+                          border: '1px solid rgba(0,0,0,0.1)',
+                          fontWeight: 600,
+                          color: 'var(--text-primary)'
+                        }}>
+                          {metric}
+                        </span>
+                      ))}
+
+                      {/* 3. 무게/세트/렙스 */}
                       {workout.weight_kg && <span className="weight">{workout.weight_kg} kg</span>}
                       {workout.sets && <span>{workout.sets} 세트</span>}
                       {workout.reps && <span>{workout.reps} 회</span>}
+                      
+                      {/* 4. 시간 */}
                       {workout.duration_min && <span>{workout.duration_min} 분</span>}
-                      {!workout.sets && !workout.reps && !workout.duration_min && !workout.weight_kg && !workout.distance_km && !workout.pace && (
+
+                      {/* 5. 데이터 없음 */}
+                      {!workout.sets && !workout.reps && !workout.duration_min && !workout.weight_kg && !workout.distance_km && !workout.pace && qualityMetrics.length === 0 && (
                         <span className="no-details">상세 정보 없음</span>
                       )}
                     </div>
@@ -755,6 +812,8 @@ export const History = () => {
                   const typeColor = getTypeColor(workout.type);
                   const typeLabel = getTypeLabel(workout.type);
                   const typeLightColor = getTypeLightColor(workout.type);
+                  // 🔥 질적 데이터 가져오기
+                  const qualityMetrics = getQualityMetrics(workout);
 
                   return (
                     <div
@@ -787,11 +846,32 @@ export const History = () => {
                         </div>
                       </div>
                       <div className="workout-details">
+                        {/* 1. 거리/속도/페이스 */}
+                        {workout.distance_km && <span className="distance">{workout.distance_km} km</span>}
+                        {workout.pace && <span className="pace">{workout.pace} /km</span>}
+                        
+                        {/* 2. 🔥 [추가] 질적 데이터 */}
+                        {qualityMetrics.map((metric, i) => (
+                          <span key={i} style={{ 
+                            backgroundColor: 'rgba(0,0,0,0.05)', 
+                            border: '1px solid rgba(0,0,0,0.1)',
+                            fontWeight: 600,
+                            color: 'var(--text-primary)'
+                          }}>
+                            {metric}
+                          </span>
+                        ))}
+
+                        {/* 3. 무게/세트/렙스 */}
                         {workout.weight_kg && <span className="weight">{workout.weight_kg} kg</span>}
                         {workout.sets && <span>{workout.sets} 세트</span>}
                         {workout.reps && <span>{workout.reps} 회</span>}
+                        
+                        {/* 4. 시간 */}
                         {workout.duration_min && <span>{workout.duration_min} 분</span>}
-                        {!workout.sets && !workout.reps && !workout.duration_min && !workout.weight_kg && (
+
+                        {/* 5. 데이터 없음 */}
+                        {!workout.sets && !workout.reps && !workout.duration_min && !workout.weight_kg && !workout.distance_km && !workout.pace && qualityMetrics.length === 0 && (
                           <span className="no-details">상세 정보 없음</span>
                         )}
                       </div>
