@@ -1,11 +1,13 @@
 import type { Workout } from '../../types';
-import { parseWithAI } from './aiParser';
+import { parseWorkoutAPI } from '../../utils/ai/parseWorkoutAPI';
 
 /**
  * New AI Parser using OpenAI gpt-4o-mini (Shredder + 3 Specialists)
  *
  * This replaces the old Gemini-based parser with a validated, high-accuracy
  * parser developed and tested in test-parser/.
+ *
+ * NOW RUNS SERVER-SIDE via Netlify Functions for security and stability.
  *
  * Key Features:
  * - Shredder: Splits complex input into individual workout segments
@@ -25,8 +27,8 @@ export const parseWithGPT = async (text: string): Promise<Workout[]> => {
   }
 
   try {
-    console.log('[AI Parser] Parsing with OpenAI gpt-4o-mini...');
-    const workouts = await parseWithAI(text);
+    console.log('[AI Parser] Calling Netlify Function parse-workout...');
+    const workouts = await parseWorkoutAPI(text);
     console.log('[AI Parser] Parsed workouts:', workouts);
     return workouts;
   } catch (err) {
