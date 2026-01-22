@@ -87,15 +87,7 @@ export const Dashboard = () => {
 
           // 유산소 거리 및 시간 계산 (환산 비율 적용)
           if (workout.type === 'cardio') {
-            // 1. 기본 거리 확보 (인클라인 보정 or 원본)
-            let baseDistance = workout.adjusted_dist_km ?? workout.distance_km ?? null;
-
-            // 2. 거리가 없고 시간만 있으면 기본 속도로 추정 (10 km/h)
-            if (!baseDistance && workout.duration_min) {
-              baseDistance = (workout.duration_min / 60) * 10;
-            }
-
-            // 3. 카테고리별 환산 비율 적용
+            // 카테고리별 환산 비율 적용
             const adjustedDistance = calculateAdjustedDistance(
               workout.distance_km,
               workout.adjusted_dist_km,
@@ -233,9 +225,12 @@ export const Dashboard = () => {
           </div>
 
           <div className="stat-card">
-            <div className="stat-label">유산소 거리</div>
+            <div className="stat-label">유산소 거리 (환산)</div>
             <div className="stat-value">{stats.totalDistance.toFixed(1)} km</div>
-            <div className="stat-note">조정된 거리</div>
+            <div className="stat-note" style={{ fontSize: '0.75rem', color: '#888', marginTop: '4px' }}>
+              종목별 난이도 보정 적용<br/>
+              🏃×1.0 🪜×1.0 🚣×0.6 🚴×0.4 💨×0.3
+            </div>
           </div>
 
           <div className="stat-card">

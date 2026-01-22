@@ -39,9 +39,7 @@ export const Header = () => {
       <div className="header-content">
         <div className="header-logo">
           <h1>💪 Workout Log</h1>
-          <div className="business-info-header">
-            jh308(제이에이치308) | 대표자: 양석환 | 사업자번호: 188-17-02548
-          </div>
+          
         </div>
 
         <div className="header-profile" ref={dropdownRef}>

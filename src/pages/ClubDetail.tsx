@@ -477,7 +477,7 @@ const DashboardWidgetWrapper = ({
         let subtitle = '';
         if (metricType === 'cardio') {
           title = '🏃 유산소 킹';
-          subtitle = '평지 환산 거리 기준';
+          subtitle = '환산 거리 기준 (🏃×1.0 🪜×1.0 🚣×0.6 🚴×0.4 💨×0.3)';
         } else if (metricType === 'strength') {
           title = '🏋️ 스트렝스 킹';
           subtitle = '총 볼륨 기준';
@@ -779,6 +779,9 @@ const HallOfFame = ({ badges }: { badges: Array<any> }) => {
         </h3>
         <p style={{ fontSize: '13px', color: '#94a3b8', margin: 0 }}>
           주간 베스트 멤버 {badges.length}명
+        </p>
+        <p style={{ fontSize: '11px', color: '#64748b', margin: '4px 0 0 0', lineHeight: 1.4 }}>
+          💡 유산소: 종목별 환산 (🏃×1.0 🪜×1.0 🚣×0.6 🚴×0.4 💨×0.3)
         </p>
       </div>
 
