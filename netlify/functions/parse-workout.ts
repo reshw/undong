@@ -56,8 +56,9 @@ type InternalCategory = z.infer<typeof InternalCategoryEnum>;
 // OpenAI Client
 // ==========================================
 
+// NOTE: Use OPENAI_API_KEY (backend env var), NOT VITE_OPENAI_API_KEY (frontend)
 const openai = new OpenAI({
-  apiKey: process.env.VITE_OPENAI_API_KEY!,
+  apiKey: process.env.OPENAI_API_KEY!,
 });
 
 const MODEL = "gpt-4o-mini";
@@ -206,6 +207,7 @@ function determineTarget(name: string) {
 // ==========================================
 
 export const handler: Handler = async (event: HandlerEvent) => {
+  // 1. Check Method
   if (event.httpMethod !== "POST") {
     return {
       statusCode: 405,
@@ -213,20 +215,36 @@ export const handler: Handler = async (event: HandlerEvent) => {
     };
   }
 
+  // 2. Check API Key (Fail fast)
+  if (!process.env.OPENAI_API_KEY) {
+    console.error("🔥 FATAL: OPENAI_API_KEY is missing in Netlify environment variables.");
+    return {
+      statusCode: 500,
+      body: JSON.stringify({
+        error: "Server Configuration Error",
+        details: "Missing OPENAI_API_KEY in environment variables"
+      }),
+    };
+  }
+
   try {
+    // 3. Parse Request Body
     const { text } = JSON.parse(event.body || "{}");
 
     if (!text || typeof text !== "string") {
       return {
         statusCode: 400,
-        body: JSON.stringify({ error: "Missing 'text' field" }),
+        body: JSON.stringify({ error: "Missing or invalid 'text' field" }),
       };
     }
 
-    // Shred
-    const segments = await shredInput(text);
+    console.log("[parse-workout] Processing text:", text.substring(0, 50) + "...");
 
-    // Parse each segment
+    // 4. Shred Input
+    const segments = await shredInput(text);
+    console.log("[parse-workout] Shredded into", segments.length, "segments");
+
+    // 5. Parse Each Segment
     const results = await Promise.all(segments.map(async (seg) => {
       let parsed: any = null;
 
@@ -246,18 +264,22 @@ export const handler: Handler = async (event: HandlerEvent) => {
     }));
 
     const workouts = results.filter(w => w !== null);
+    console.log("[parse-workout] Successfully parsed", workouts.length, "workouts");
 
     return {
       statusCode: 200,
       body: JSON.stringify({ workouts }),
     };
   } catch (error) {
-    console.error("[parse-workout] Error:", error);
+    console.error("🔥 [parse-workout] Error:", error);
+
+    // Return detailed error for debugging
     return {
       statusCode: 500,
       body: JSON.stringify({
-        error: "Parsing failed",
-        message: error instanceof Error ? error.message : "Unknown error"
+        error: "AI Processing Failed",
+        details: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
       }),
     };
   }

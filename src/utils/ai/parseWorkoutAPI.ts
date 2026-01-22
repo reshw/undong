@@ -10,6 +10,8 @@ export async function parseWorkoutAPI(text: string): Promise<Workout[]> {
   }
 
   try {
+    console.log('[parseWorkoutAPI] Calling Netlify Function with text:', text);
+
     const response = await fetch('/.netlify/functions/parse-workout', {
       method: 'POST',
       headers: {
@@ -18,12 +20,22 @@ export async function parseWorkoutAPI(text: string): Promise<Workout[]> {
       body: JSON.stringify({ text }),
     });
 
+    console.log('[parseWorkoutAPI] Response status:', response.status);
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-      throw new Error(`API Error: ${errorData.error || response.statusText}`);
+      console.error('[parseWorkoutAPI] Error response:', errorData);
+
+      // Show detailed error from backend
+      const errorMsg = errorData.details
+        ? `${errorData.error}: ${errorData.details}`
+        : errorData.error || response.statusText;
+
+      throw new Error(`API Error (${response.status}): ${errorMsg}`);
     }
 
     const data = await response.json();
+    console.log('[parseWorkoutAPI] Success, parsed workouts:', data.workouts);
     return data.workouts || [];
   } catch (error) {
     console.error('[parseWorkoutAPI] Failed to parse workout:', error);
