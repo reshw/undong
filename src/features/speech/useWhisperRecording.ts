@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import { transcribeAudio as geminiTranscribeAudio } from '../../utils/gemini';
+import { transcribeAudio } from '../../utils/ai/transcribeAPI';
 
 interface WhisperRecordingResult {
   isRecording: boolean;
@@ -68,7 +68,7 @@ export const useWhisperRecording = (): WhisperRecordingResult => {
     try {
       console.log('[Gemini] Sending audio transcription request...');
 
-      const text = await geminiTranscribeAudio(audioBlob);
+      const text = await transcribeAudio(audioBlob);
       console.log('[Gemini] Transcription result:', text);
       setTranscript(text);
 

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getAllLogs, getUserProfile, saveUserProfile, deleteUserProfile } from '../storage/supabaseStorage';
 import { saveTodo, getTodayTodo, getAllTodos, generateId, formatDate } from '../storage/logStorage';
 import type { WorkoutLog, UserProfile, DailyTodo, TodoWorkout } from '../types';
-import { generateTextWithAI, getAvailableProviders, getDefaultProvider } from '../utils/ai';
+import { generateTextWithAI, getAvailableProviders, getDefaultProvider } from '../utils/ai/aiRecommendAPI';
 
 type ViewMode = 'profile-chat' | 'ready' | 'loading' | 'recommendation-chat' | 'finalized';
 
