@@ -14,6 +14,7 @@ export const getCategoryIcon = (category: WorkoutCategory): string => {
     running: '🏃',
     sports: '⚽',
     home: '🏠',
+    cycle: '🚴',
     other: '💪',
   };
   return iconMap[category] || '💪';
@@ -27,6 +28,7 @@ export const getCategoryLabel = (category: WorkoutCategory): string => {
     running: '러닝',
     sports: '스포츠',
     home: '홈트',
+    cycle: '사이클',
     other: '기타',
   };
   return labelMap[category] || '기타';
